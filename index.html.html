@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShelfSense AI | Intelligent Store Stock Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #10b981;
+            --primary-dark: #047857;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f0fdf4;
+            min-height: 100vh;
+            scroll-behavior: smooth;
+        }
+        
+        .glow-box {
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+        
+        .scan-animation {
+            animation: scan 3s ease-in-out infinite;
+            position: absolute;
+            top: -20px;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, transparent, #4ade80, #0ea5e9, transparent);
+            border-radius: 20px;
+        }
+        
+        @keyframes scan {
+            0% { top: -20px; }
+            50% { top: calc(100% + 20px); }
+            100% { top: -20px; }
+        }
+        
+        .fruit-card {
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+        
+        .fruit-card:hover {
+            transform: translateY(-5px) scale(1.05);
+        }
+        
+        .status-fresh {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+        
+        .status-maybe {
+            background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+        }
+        
+        .status-spoiled {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+        
+        .status-not-detected {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+            border-top: 2px solid #9ca3af;
+            margin-top: 0.5rem;
+        }
+        
+        .camera-frame {
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #webcam-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .logo-container {
+            background: linear-gradient(to right, 
+                rgba(220, 38, 38, 0.8) 0%, 
+                rgba(255, 255, 255, 0.5) 50%, 
+                rgba(29, 78, 216, 0.8) 100%);
+            padding: 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .freshness-tips-container {
+            margin-top: 1rem;
+            padding-bottom: 0.5rem;
+            border-radius: 0.75rem;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-inactive {
+            background: #9ca3af !important;
+        }
+        
+        .history-item {
+            border-left: 4px solid #10b981;
+            transition: all 0.3s ease;
+        }
+        
+        .history-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #10b981;
+        }
+        
+        .notification.error {
+            background-color: #ef4444;
+        }
+        
+        .notification.warning {
+            background-color: #f59e0b;
+        }
+        
+        .notification.info {
+            background-color: #3b82f6;
+        }
+        
+        .presentation-section {
+            scroll-margin-top: 100px;
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .nav-link {
+            position: relative;
+            color: #1e293b !important;
+            font-weight: 500;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #1e293b;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .demo-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .demo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .chart-bar {
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+        
+        .chart-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            width: 0;
+            transition: width 1.5s ease-out;
+        }
+        
+        .chart-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #64748b;
+        }
+        
+        .counter {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #10b981;
+        }
+        
+        .counter-container {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .counter-label {
+            font-size: 1rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .interactive-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .interactive-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .capture-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .capture-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .saved-images-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .saved-image {
+            width: 100%;
+            border-radius: 8px;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border: 2px solid #e5e7eb;
+        }
+        
+        /* Self-Analysis Modal */
+        .self-analysis-modal {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 100;
+            width: 320px;
+            transform: translateX(100%);
+            transition: transform 0.4s ease;
+        }
+        
+        .self-analysis-modal.show {
+            transform: translateX(0);
+        }
+        
+        .option-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .option-btn:hover {
+            background: #e2e8f0;
+        }
+        
+        .option-btn.selected {
+            background: #10b981;
+            color: white;
+        }
+        
+        /* Results Modal */
+        .results-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            z-index: 1000;
+            width: 90%;
+            max-width: 500px;
+            opacity: 0;
+            transition: all 0.4s ease;
+        }
+        
+        .results-modal.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
+        
+        /* Scanning Prompts */
+        .scan-prompt {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        /* Supported Items Grid */
+        .supported-items-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .supported-items-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .self-analysis-modal {
+                width: 280px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .supported-items-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Notification System -->
+    <div id="notification" class="notification hidden">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span id="notification-message"></span>
+    </div>
+
+    <!-- Overlay for modals -->
+    <div id="modal-overlay" class="overlay"></div>
+
+    <!-- Self-Analysis Modal -->
+    <div id="self-analysis-modal" class="self-analysis-modal">
+        <h3 class="text-lg font-bold text-green-700 mb-4">Self-Analysis Questions</h3>
+        <div class="mb-4">
+            <p class="font-medium mb-2">How squishy is your produce?</p>
+            <div class="flex flex-wrap">
+                <button class="option-btn" data-value="1">Firm</button>
+                <button class="option-btn" data-value="2">Slightly Soft</button>
+                <button class="option-btn" data-value="3">Soft</button>
+                <button class="option-btn" data-value="4">Very Squishy</button>
+            </div>
+        </div>
+        <div class="mb-4">
+            <p class="font-medium mb-2">Does it smell bad?</p>
+            <div class="flex flex-wrap">
+                <button class="option-btn" data-value="1">Fresh Smell</button>
+                <button class="option-btn" data-value="2">Neutral</button>
+                <button class="option-btn" data-value="3">Slightly Off</button>
+                <button class="option-btn" data-value="4">Bad Odor</button>
+            </div>
+        </div>
+        <button id="submit-analysis" class="bg-green-600 text-white w-full py-2 rounded-lg font-medium">Submit Analysis</button>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="results-modal" class="results-modal">
+        <h3 class="text-xl font-bold text-green-700 mb-4 text-center">Analysis Results</h3>
+        <div id="combined-results" class="mb-6 p-4 bg-green-50 rounded-lg">
+            <p class="text-center text-lg font-medium" id="result-text">Your produce appears to be fresh!</p>
+            <div class="mt-4 grid grid-cols-2 gap-4">
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">AI Detection</p>
+                    <p class="text-lg font-bold" id="ai-result">Fresh: 85%</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">Self-Analysis</p>
+                    <p class="text-lg font-bold" id="self-result">Good Condition</p>
+                </div>
+            </div>
+        </div>
+        <div class="mb-4">
+            <h4 class="font-medium mb-2">Recommendations:</h4>
+            <ul class="text-sm text-gray-700 space-y-1" id="recommendations">
+                <li>• Store in a cool, dry place</li>
+                <li>• Consume within 2-3 days</li>
+            </ul>
+        </div>
+        <div class="flex gap-3">
+            <button id="save-combined-result" class="bg-green-600 text-white flex-1 py-2 rounded-lg font-medium">Save Result</button>
+            <button id="close-results" class="bg-gray-200 text-gray-700 flex-1 py-2 rounded-lg font-medium">Close</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-red-600 via-white to-blue-700 py-4 px-4 md:px-12 sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-2xl md:text-3xl font-bold flex items-center gap-3 text-gray-800">
+                        <i class="fas fa-apple-alt"></i>
+                        ShelfSense AI
+                    </h1>
+                </div>
+                <div class="hidden md:flex space-x-8 mt-4 md:mt-0">
+                    <a href="#scanner" class="nav-link">Scanner</a>
+                    <a href="#problem" class="nav-link">Problem</a>
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#how-it-works" class="nav-link">How It Works</a>
+                    <a href="#benefits" class="nav-link">Benefits</a>
+                    <a href="#stats" class="nav-link">Statistics</a>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <div class="logo-container">
+                        <div class="bg-white p-3 rounded-lg flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-blue-600">AI POWERED</div>
+                                <div class="text-xs">Real-time Analysis</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Scanner Section -->
+    <section id="scanner" class="presentation-section py-12 bg-gradient-to-b from-green-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 glow-box">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-green-700 flex items-center gap-2">
+                        <i class="fas fa-camera"></i>
+                        Store Inventory Scanner
+                    </h2>
+                    <div class="flex gap-2">
+                        <button id="start-btn" class="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition flex items-center gap-2">
+                            <i class="fas fa-play"></i> Start Scan
+                        </button>
+
+                    </div>
+                </div>
+                
+                <!-- Camera Container -->
+                <div class="relative">
+                    <div class="bg-gray-100 rounded-xl overflow-hidden aspect-video border-4 border-green-500 camera-frame relative">
+                        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400">
+                            <div class="text-center">
+                                <i class="fas fa-camera text-5xl mb-4"></i>
+                                <p>Camera ready when you start scanning</p>
+                            </div>
+                        </div>
+                        <div class="scan-animation hidden" id="scan-animation"></div>
+                        <div id="scan-prompt" class="scan-prompt hidden">Please position your produce in the center</div>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-500 text-center">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Position item clearly in front of the camera for best results
+                    </div>
+                </div>
+
+                <!-- Supported Items Section -->
+                <div class="mt-8">
+    <h3 class="text-lg font-medium mb-3 flex items-center gap-2">
+        <i class="fas fa-check-circle"></i>
+        Supported Items
+    </h3>
+
+    <div class="supported-items-grid">
+
+        <!-- GRAINS -->
+        <div class="fruit-card p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col items-center">
+            <span class="text-2xl">🍚</span>
+            <span class="mt-2 text-sm font-medium">Rice</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-yellow-50 rounded-xl border border-yellow-200 flex flex-col items-center">
+            <span class="text-2xl">🌾</span>
+            <span class="mt-2 text-sm font-medium">Wheat</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-orange-50 rounded-xl border border-orange-200 flex flex-col items-center">
+            <span class="text-2xl">🌾</span>
+            <span class="mt-2 text-sm font-medium">Bajra</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-amber-100 rounded-xl border border-amber-200 flex flex-col items-center">
+            <span class="text-2xl">🌾</span>
+            <span class="mt-2 text-sm font-medium">Jowar</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-lime-50 rounded-xl border border-lime-200 flex flex-col items-center">
+            <span class="text-2xl">🌾</span>
+            <span class="mt-2 text-sm font-medium">Ragi</span>
+        </div>
+
+        <!-- PULSES -->
+        <div class="fruit-card p-3 bg-red-50 rounded-xl border border-red-200 flex flex-col items-center">
+            <span class="text-2xl">🫘</span>
+            <span class="mt-2 text-sm font-medium">Moong Dal</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-orange-50 rounded-xl border border-orange-200 flex flex-col items-center">
+            <span class="text-2xl">🫘</span>
+            <span class="mt-2 text-sm font-medium">Masoor Dal</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col items-center">
+            <span class="text-2xl">🫘</span>
+            <span class="mt-2 text-sm font-medium">Toor Dal</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-green-50 rounded-xl border border-green-200 flex flex-col items-center">
+            <span class="text-2xl">🫘</span>
+            <span class="mt-2 text-sm font-medium">Chickpeas</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-purple-50 rounded-xl border border-purple-200 flex flex-col items-center">
+            <span class="text-2xl">🫘</span>
+            <span class="mt-2 text-sm font-medium">Kidney Beans (Rajma)</span>
+        </div>
+
+        <!-- BREAKFAST ITEMS -->
+        <div class="fruit-card p-3 bg-pink-50 rounded-xl border border-pink-200 flex flex-col items-center">
+            <span class="text-2xl">🥣</span>
+            <span class="mt-2 text-sm font-medium">Sooji (Rava)</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-blue-50 rounded-xl border border-blue-200 flex flex-col items-center">
+            <span class="text-2xl">🍚</span>
+            <span class="mt-2 text-sm font-medium">Poha</span>
+        </div>
+
+        <!-- OIL SEEDS -->
+        <div class="fruit-card p-3 bg-yellow-50 rounded-xl border border-yellow-200 flex flex-col items-center">
+            <span class="text-2xl">🌻</span>
+            <span class="mt-2 text-sm font-medium">Sesame (Til)</span>
+        </div>
+
+        <div class="fruit-card p-3 bg-orange-100 rounded-xl border border-orange-200 flex flex-col items-center">
+            <span class="text-2xl">🥜</span>
+            <span class="mt-2 text-sm font-medium">Groundnuts</span>
+        </div>
+
+    </div>
+</div>
+ 
+
+</div>
+                
+                <!-- Result Display -->
+                <div id="results-container" class="mt-8">
+                    <h3 class="text-lg font-medium mb-3 flex items-center gap-2">
+                        <i class="fas fa-clipboard-list"></i>
+                        Detection Results
+                    </h3>
+                    <div class="grid grid-cols-4 gap-3">
+                        <div class="result-item status-fresh p-3 rounded-lg text-center">
+                            <div class="text-xs opacity-80">FULLY FILLED</div>
+                            <div id="fresh-value" class="text-lg font-bold text-green-600">0%</div>
+                        </div>
+                        <div class="result-item status-maybe p-3 rounded-lg text-center">
+                            <div class="text-xs opacity-80">MIGHT NEED TO FILL</div>
+                            <div id="maybe-value" class="text-lg font-bold text-amber-600">0%</div>
+                        </div>
+                        <div class="result-item status-spoiled p-3 rounded-lg text-center">
+                            <div class="text-xs opacity-80">PLEASE REFILL</div>
+                            <div id="spoiled-value" class="text-lg font-bold text-rose-700">0%</div>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Almost EMPTY!!!</span>
+                            <span>Fully Filled</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="freshness-progress" class="progress-fill bg-green-500" style="width: 0%"></div>
+                        </div>
+                        <div id="progress-status" class="text-xs text-gray-500 mt-1 text-center">Analysis active</div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3 mt-6">
+                        <button id="save-result-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-save"></i> Save Result
+                        </button>
+                        <button id="capture-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 capture-btn">
+                            <i class="fas fa-camera"></i> Capture Image
+                        </button>
+                        <button id="clear-history-btn" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition flex items-center gap-2">
+                            <i class="fas fa-trash"></i> Clear History
+                        </button>
+                    </div>
+                    
+                    <!-- Image Capture Section -->
+                    <div id="image-capture-section" class="mt-6 hidden">
+                        <h3 class="text-lg font-medium mb-3 flex items-center gap-2">
+                            <i class="fas fa-images"></i>
+                            Captured Images
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-3">These images will help improve our AI model. Thank you for contributing!</p>
+                        <div id="saved-images" class="saved-images-container">
+                            <!-- Captured images will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Store Management Tips -->
+                    <div class="Store Management Tips-container bg-green-50 border border-green-100 p-4 mt-6">
+                        <h4 class="font-medium text-green-800 mb-2 flex items-center gap-2">
+                            <i class="fas fa-lightbulb"></i>
+                            Store Management Tips
+                        </h4>
+                        <ul class="text-sm text-green-700 space-y-2">
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-blue-500 mt-0.5"></i>
+                                <span>Keep items properly labeled and organized</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-blue-500 mt-0.5"></i>
+                                <span>Regularly scan products to track stock levels</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-blue-500 mt-0.5"></i>
+                                <span>Restock items before they reach low levels</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-blue-500 mt-0.5"></i>
+                                <span>Monitor fast-used items more frequently</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-blue-500 mt-0.5"></i>
+                                <span>Use AI scanning to reduce manual checking</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Scan History -->
+                <div id="history-container" class="mt-8 hidden">
+                    <h3 class="text-lg font-medium mb-3 flex items-center gap-2">
+                        <i class="fas fa-history"></i>
+                        Scan History
+                    </h3>
+                    <div id="history-list" class="space-y-3">
+                        <!-- History items will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Statement Section -->
+    <section id="problem" class="presentation-section py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">The Inventory Management Problem</h2>
+            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">Stores often struggle to track stock levels accurately, leading to overstocking or running out of essential items.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <div class="chart-container mb-8">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Items Untracked in India</h3>
+                        <div class="mb-6">
+                            <div class="chart-bar">
+                                <div class="chart-fill" id="waste-chart" style="width: 35%"></div>
+                            </div>
+                            <div class="chart-label">
+                                <span>Items Untracked</span>
+                                <span35%</span>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 text-sm">Many small stores lack real-time inventory tracking, leading to stock shortages and overstocking.</p>
+                    </div>
+                    
+                    <div class="bg-red-50 p-6 rounded-2xl">
+                        <h3 class="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Business Impact
+                        </h3>
+                        <p class="text-gray-700">Incorrect stock tracking can lead to missed sales opportunities, customer dissatisfaction, and revenue loss.</p>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="presentation-section py-16 bg-green-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">Store inventory AI</h2>
+            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">ShelfSense AIuses computer vision to simplify store inventory tracking</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="interactive-card feature-card bg-white p-6 rounded-2xl text-center shadow-md">
+                    <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-camera text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-green-800 mb-2">AI Inventory Scanning</h3>
+                    <p class="text-gray-600">Detects store items and estimates stock levels using AI</p>
+                </div>
+                
+                <div class="interactive-card feature-card bg-white p-6 rounded-2xl text-center shadow-md">
+                    <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-bell text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-blue-800 mb-2">Stock Alerts</h3>
+                    <p class="text-gray-600">Get notified when items are running low or need restocking</p>
+                </div>
+                
+                <div class="interactive-card feature-card bg-white p-6 rounded-2xl text-center shadow-md">
+                    <div class="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-line text-2xl text-amber-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-amber-800 mb-2">Inventory Insights</h3>
+                    <p class="text-gray-600">Track stock levels and improve store efficiency with AI insights</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="presentation-section py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">How ShelfSense AI Works</h2>	
+            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">Our seamless process makes our system continuously monitors store inventory in real-time effortless and effective</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-xl font-bold text-green-800">1</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-green-800 mb-2">Install Camera</h3>
+                    <p class="text-gray-600">Set up a camera to monitor store shelves</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-xl font-bold text-green-800">2</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-green-800 mb-2">Continuous AI Monitoring</h3>
+                    <p class="text-gray-600">AI continuously detects items and tracks stock levels</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-xl font-bold text-green-800">3</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-green-800 mb-2">Real-Time Updates</h3>
+                    <p class="text-gray-600">Live updates on stock availability and changes</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-xl font-bold text-green-800">4</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-green-800 mb-2">Smart Inventory Management</h3>
+                    <p class="text-gray-600">Restock items on time and avoid shortages</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section id="Benefits for Retail Stores="presentation-section py-16 bg-green-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">Benefits of ShelfSence AI</h2>
+            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">Our solution delivers significant benefits for AI-powered inventory monitoring and store automation</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="flex items-start gap-4">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-money-bill-wave text-green-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-green-800 mb-2">Reduce Stock Loss</h3>
+                        <p class="text-gray-600">Avoid overstocking and prevent out-of-stock situations with real-time tracking</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-heartbeat text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-blue-800 mb-2">Increase Store Efficiency</h3>
+                        <p class="text-gray-600">Automate inventory management and reduce manual effort for faster operations</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4">
+                    <div class="bg-amber-100 p-3 rounded-full">
+                        <i class="fas fa-leaf text-amber-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-amber-800 mb-2">Better Inventory Planning</h3>
+                        <p class="text-gray-600">Analyze stock trends and restock intelligently using data-driven insights</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-clock text-purple-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-purple-800 mb-2">24/7 AI Monitoring</h3>
+                        <p class="text-gray-600">Continuously track inventory with an AI-powered camera system in real time</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section id="stats" class="presentation-section py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">Retail Impact Metrics</h2>
+            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">ShelfSense AI has the potential to significantly performance metrics of the AI-powered inventory system</p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+                <div class="stat-card bg-green-50 p-4 rounded-lg text-center">
+                    <div class="counter text-3xl font-bold text-green-600" id="reduction-counter">70</div>
+                    <div class="counter-label">Stock Loss Reduction</div>
+                </div>
+                <div class="stat-card bg-blue-50 p-4 rounded-lg text-center">
+                    <div class="counter text-3xl font-bold text-blue-600" id="accuracy-counter">90</div>
+                    <div class="counter-label">AI Detection Accuracy</div>
+                </div>
+                <div class="stat-card bg-amber-50 p-4 rounded-lg text-center">
+                    <div class="counter text-3xl font-bold text-amber-600">75</div>
+                    <div class="counter-label">Inventory Efficiency</div>
+                </div>
+                <div class="stat-card bg-red-50 p-4 rounded-lg text-center">
+                    <div class="counter text-3xl font-bold text-red-600">60%</div>
+                    <div class="counter-label">Out-of-Stock Reduction</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="text-xl font-bold text-gray-800 mb-6">
+    System Performance Overview of ShelfSense AI
+</h3>
+                
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-medium">Inventory Accuracy</span>
+                        <span>70%</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-fill" style="width: 70%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-medium">Stock Optimization</span>
+                        <span>60%</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-fill" style="width: 60%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-medium">Operational Efficiency</span>
+                        <span>45%</span>
+                    </div>
+                    <div class="chart-bar">
+                        <div class="chart-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-red-600 via-white to-blue-700 text-black py-8">
+        <div class="container mx-auto px-4 text-center">
+            <div class="footer-content max-w-3xl mx-auto">
+                <div class="mb-6">
+                    <h3 class="text-2xl font-bold">ShelfSense AI</h3>
+                    <p class="opacity-90 mt-4">
+                        Using powerful image recognition through your webcam, ShelfSense AI detects inventory items and analyzes stock levels in real-time using AI in real-time. Powered by Google's Teachable Machine.
+                    </p>
+                </div>
+                <div class="mt-8 text-sm opacity-80">
+                    © 2025 ShelfSense AI | Westwood School Project
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-green-600">How Our AI Works</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-bold text-lg">Machine Learning Model</h4>
+                    <p class="text-gray-600">Our system uses a convolutional neural network trained on thousands of images of fresh and spoiled produce. The model analyzes visual patterns including color distribution, texture variations, and surface defects.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg">Transfer Learning</h4>
+                    <p class="text-gray-600">We leverage transfer learning from pre-trained models like Teachable Machine, fine-tuning the final layers specifically for freshness detection. This allows for accurate results with less training data.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg">Real-time Analysis</h4>
+                    <p class="text-gray-600">The model runs directly in your browser using TensorFlow.js, processing each frame to provide immediate freshness assessments without sending images to external servers.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg">Privacy Focused</h4>
+                    <p class="text-gray-600">All image processing happens locally on your device. No images are stored or sent to any servers, ensuring your privacy and security.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guide Modal -->
+    <div id="guide-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 max-w-2xl mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-blue-600">Scanning Guide</h3>
+                <button id="close-guide" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-full mt-1">
+                        <i class="fas fa-lightbulb text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold">Lighting Conditions</h4>
+                        <p class="text-gray-600">Ensure good lighting on the produce. Natural daylight works best. Avoid shadows and harsh direct light that creates reflections.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-full mt-1">
+                        <i class="fas fa-ruler-combined text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold">Distance & Angle</h4>
+                        <p class="text-gray-600">Position the item 6-12 inches from the camera. Keep the camera parallel to the produce for best results.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-full mt-1">
+                        <i class="fas fa-crop-alt text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold">Framing</h4>
+                        <p class="text-gray-600">Center the produce in the frame and make sure it takes up most of the view. Avoid including background objects.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-full mt-1">
+                        <i class="fas fa-ban text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold">What to Avoid</h4>
+                        <p class="text-gray-600">Avoid moving the camera during scanning. Don't scan through plastic bags or containers as they can cause reflections.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TensorFlow Libraries 
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>-->
+    
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    // More API functions here:
+    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+    // the link to your model provided by Teachable Machine export panel
+    const URL = "https://teachablemachine.withgoogle.com/models/0cSqTI9FL/";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    // Load the image model and setup the webcam
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        // load the model and metadata
+        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+        // or files from your local hard drive
+        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // Convenience function to setup a webcam
+        const flip = true; // whether to flip the webcam
+        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+        await webcam.setup(); // request access to the webcam
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        // append elements to the DOM
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) { // and class labels
+            labelContainer.appendChild(document.createElement("div"));
+        }
+    }
+
+    async function loop() {
+        webcam.update(); // update the webcam frame
+        await predict(webcam.canvas);
+        window.requestAnimationFrame(loop);
+    }
+
+    // run the webcam image through the image model
+async function predict(img) {
+    const prediction = await model.predict(img);
+
+    // find best prediction
+    let best = prediction[0];
+    prediction.forEach(p => {
+        if (p.probability > best.probability) best = p;
+    });
+
+    // split class name (Rajma_50)
+    let parts = best.className.split("_");
+    let item = parts[0];
+    let level = parseInt(parts[1]);
+
+window.currentItem = item;
+window.currentLevel = level;
+
+    // stock status
+    let status = "";
+    if (level >= 80) status = "Full Stock";
+    else if (level >= 50) status = "Medium Stock";
+    else status = "Low Stock";
+
+    // show result
+    document.getElementById("result").innerHTML =
+        item + " - " + level + "% (" + status + ")";
+
+    }
+window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("start-btn").addEventListener("click", init);
+});
+</script>
+
+</body>
+</html>
