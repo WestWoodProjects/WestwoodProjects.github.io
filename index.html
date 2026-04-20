@@ -581,11 +581,12 @@
                 <!-- Camera Container -->
                 <div class="relative">
                     <div class="bg-gray-100 rounded-xl overflow-hidden aspect-video border-4 border-green-500 camera-frame relative">
-                        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400">
+                        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400"
                             <div class="text-center">
                                 <i class="fas fa-camera text-5xl mb-4"></i>
                                 <p>Camera ready when you start scanning</p>
                             </div>
+                            <div id="label-container" class="text-sm text-gray-600 mt-2 text-center"></div>
                         </div>
                         <div class="scan-animation hidden" id="scan-animation"></div>
                         <div id="scan-prompt" class="scan-prompt hidden">Please position your produce in the center</div>
@@ -734,7 +735,7 @@
                     </div>
                     
                     <!-- Store Management Tips -->
-                    <div class="Store Management Tips-container bg-green-50 border border-green-100 p-4 mt-6">
+                    <div class="store-management-tips-container bg-green-50 border border-green-100 p-4 mt-6">
                         <h4 class="font-medium text-green-800 mb-2 flex items-center gap-2">
                             <i class="fas fa-lightbulb"></i>
                             Store Management Tips
@@ -794,7 +795,7 @@
                             </div>
                             <div class="chart-label">
                                 <span>Items Untracked</span>
-                                <span35%</span>
+                                <span35></span35>%</span>
                             </div>
                         </div>
                         <p class="text-gray-600 text-sm">Many small stores lack real-time inventory tracking, leading to stock shortages and overstocking.</p>
@@ -892,9 +893,9 @@
     </section>
 
     <!-- Benefits Section -->
-    <section id="Benefits for Retail Stores="presentation-section py-16 bg-green-50">
+    <section id="benefits" class="presentation-section py-16 bg-green-50">
         <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">Benefits of ShelfSence AI</h2>
+            <h2 class="text-3xl font-bold text-center text-green-700 mb-4">Benefits of ShelfSense AI</h2>
             <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">Our solution delivers significant benefits for AI-powered inventory monitoring and store automation</p>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -1112,7 +1113,7 @@
     // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
 
     // the link to your model provided by Teachable Machine export panel
-    const URL = "https://teachablemachine.withgoogle.com/models/0cSqTI9FL/";
+    const URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
 
     let model, webcam, labelContainer, maxPredictions;
 
@@ -1135,14 +1136,25 @@
         await webcam.play();
         window.requestAnimationFrame(loop);
 
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) { // and class labels
-            labelContainer.appendChild(document.createElement("div"));
-        }
-    }
+       // append elements to the DOM
+const container = document.getElementById("webcam-container");
 
+// clear old camera
+container.innerHTML = "";
+
+// add new camera
+container.appendChild(webcam.canvas);
+
+// label container
+labelContainer = document.getElementById("label-container");
+
+// clear old labels
+labelContainer.innerHTML = "";
+
+// create new labels
+for (let i = 0; i < maxPredictions; i++) {
+    labelContainer.appendChild(document.createElement("div"));
+}
     async function loop() {
         webcam.update(); // update the webcam frame
         await predict(webcam.canvas);
@@ -1174,7 +1186,9 @@ window.currentLevel = level;
     else status = "Low Stock";
 
     // show result
-    document.getElementById("result").innerHTML =
+    document.getElementById("<h2 id="result" class="text-lg font-bold text-center mt-4 text-green-700">
+    Waiting for scan...
+</h2>").innerHTML =
         item + " - " + level + "% (" + status + ")";
 
     }
