@@ -700,6 +700,10 @@
                         </div>
 
                     </div>
+<button id="order-btn" 
+class="mt-4 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition">
+🛒 Order from Blinkit
+</button>
                     
                     <!-- Progress Bar -->
                     <div class="mt-4">
@@ -824,7 +828,7 @@
     <section id="features" class="presentation-section py-16 bg-green-50">
         <div class="container mx-auto px-4">
             <h2 class="text-3xl font-bold text-center text-green-700 mb-4">Store inventory AI</h2>
-            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">ShelfSense AIuses computer vision to simplify store inventory tracking</p>
+            <p class="text-gray-600 text-center max-w-2xl mx-auto mb-12">ShelfSense AI uses computer vision to simplify store inventory tracking</p>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="interactive-card feature-card bg-white p-6 rounded-2xl text-center shadow-md">
@@ -1158,7 +1162,7 @@ async function loop() {
     window.requestAnimationFrame(loop);
 }
 
-// PREDICT
+let lastAlertItem = "";
 async function predict(img) {
     const prediction = await model.predict(img);
 
@@ -1177,25 +1181,26 @@ async function predict(img) {
     else status = "Low Stock";
 
     document.getElementById("result").innerHTML =
-        item + " - " + level + "% (" + status + ")";
+        `📦 ${item}<br>Stock: ${level}%<br>Status: <b>${status}</b>`;
+
+    document.getElementById("fresh-value").innerText = level + "%";
+    document.getElementById("maybe-value").innerText = (100 - level) + "%";
+    document.getElementById("spoiled-value").innerText =
+        (level < 50 ? 100 - level : 0) + "%";
+
+    document.getElementById("freshness-progress").style.width = level + "%";
+
+    // ✅ BUTTON LOGIC (correct place)
+    const orderBtn = document.getElementById("order-btn");
 }
-document.getElementById("upload-btn").addEventListener("change", async function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    const orderBtn = document.getElementById("order-btn");
 
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(file);
-    img.width = 200;
 
-    img.onload = async () => {
-        const container = document.getElementById("webcam-container");
-        container.innerHTML = "";
-        container.appendChild(img);
-
-        await predict(img);
-    };
+    document.getElementById("order-btn").addEventListener("click", () => {
+    alert("🚧 Auto-order feature coming soon!");
 });
-
+// 🛒 SHOW / HIDE ORDER BUTTON
+const orderBtn = document.getElementById("order-btn");
 </script>
 </body>
 </html>
