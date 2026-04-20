@@ -1130,6 +1130,17 @@ async function init() {
         isRunning = false;
     }
 }
+    document.getElementById("order-btn").addEventListener("click", () => {
+    const item = document.getElementById("result-item").innerText;
+
+    if (!item || item === "Waiting for scan...") {
+        alert("Scan an item first!");
+        return;
+    }
+
+    const query = encodeURIComponent(item);
+    window.open(`https://blinkit.com/s/?q=${query}`, "_blank");
+});
 
 // LOOP
 async function loop() {
