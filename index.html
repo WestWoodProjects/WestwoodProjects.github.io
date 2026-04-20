@@ -1183,7 +1183,23 @@ async function predict() {
     const box = document.getElementById("result-box");
 
     itemEl.innerText = item;
-    statusEl.innerText = `${status} • Confidence: ${level}%`;
+
+statusEl.innerHTML = `
+    <span class="text-lg font-semibold">${status}</span><br>
+    <span class="text-xs text-gray-600">Confidence: ${level}%</span>
+`;
+    itemEl.innerText = item;
+
+statusEl.innerHTML = `
+    <span class="text-lg font-semibold">${status}</span><br>
+    <span class="text-xs text-gray-600">Confidence: ${level}%</span>
+`;
+
+// ✨ Animation (ADD THIS HERE)
+box.classList.add("scale-105");
+setTimeout(() => {
+    box.classList.remove("scale-105");
+}, 200);
 
     // 🎨 Color styling
     box.classList.remove("bg-green-100", "bg-yellow-100", "bg-red-100");
