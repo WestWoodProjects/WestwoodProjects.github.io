@@ -581,7 +581,7 @@
                 <!-- Camera Container -->
                 <div class="relative">
                     <div class="bg-gray-100 rounded-xl overflow-hidden aspect-video border-4 border-green-500 camera-frame relative">
-                        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400"
+                        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400">
                             <div class="text-center">
                                 <i class="fas fa-camera text-5xl mb-4"></i>
                                 <p>Camera ready when you start scanning</p>
@@ -1111,94 +1111,73 @@
     
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-<script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+<script>
+const URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
 
-    // the link to your model provided by Teachable Machine export panel
-    const URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
+let model, webcam, labelContainer, maxPredictions;
 
-    let model, webcam, labelContainer, maxPredictions;
+// START BUTTON
+window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("start-btn").addEventListener("click", init);
+});
 
-    // Load the image model and setup the webcam
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
+// INIT FUNCTION
+async function init() {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
 
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
 
-        // Convenience function to setup a webcam
-        const flip = true; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        await webcam.play();
-        window.requestAnimationFrame(loop);
+    webcam = new tmImage.Webcam(200, 200, true);
+    await webcam.setup();
+    await webcam.play();
 
-       // append elements to the DOM
-const container = document.getElementById("webcam-container");
+    window.requestAnimationFrame(loop);
 
-// clear old camera
-container.innerHTML = "";
+    // Attach webcam
+    const container = document.getElementById("webcam-container");
+    container.innerHTML = "";
+    container.appendChild(webcam.canvas);
 
-// add new camera
-container.appendChild(webcam.canvas);
+    // Label container
+    labelContainer = document.getElementById("label-container");
+    labelContainer.innerHTML = "";
 
-// label container
-labelContainer = document.getElementById("label-container");
-
-// clear old labels
-labelContainer.innerHTML = "";
-
-// create new labels
-for (let i = 0; i < maxPredictions; i++) {
-    labelContainer.appendChild(document.createElement("div"));
-}
-    async function loop() {
-        webcam.update(); // update the webcam frame
-        await predict(webcam.canvas);
-        window.requestAnimationFrame(loop);
+    for (let i = 0; i < maxPredictions; i++) {
+        labelContainer.appendChild(document.createElement("div"));
     }
+}
 
-    // run the webcam image through the image model
+// LOOP (runs continuously)
+async function loop() {
+    webcam.update();
+    await predict(webcam.canvas);
+    window.requestAnimationFrame(loop);
+}
+
+// PREDICT FUNCTION
 async function predict(img) {
     const prediction = await model.predict(img);
 
-    // find best prediction
     let best = prediction[0];
     prediction.forEach(p => {
         if (p.probability > best.probability) best = p;
     });
 
-    // split class name (Rajma_50)
     let parts = best.className.split("_");
     let item = parts[0];
     let level = parseInt(parts[1]);
 
-window.currentItem = item;
-window.currentLevel = level;
-
-    // stock status
     let status = "";
     if (level >= 80) status = "Full Stock";
     else if (level >= 50) status = "Medium Stock";
     else status = "Low Stock";
 
-    // show result
-    document.getElementById("<h2 id="result" class="text-lg font-bold text-center mt-4 text-green-700">
-    Waiting for scan...
-</h2>").innerHTML =
+    // Update result text
+    document.getElementById("result").innerHTML =
         item + " - " + level + "% (" + status + ")";
-
-    }
-window.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("start-btn").addEventListener("click", init);
-});
+}
 </script>
-
 </body>
 </html>
