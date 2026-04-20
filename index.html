@@ -1110,32 +1110,33 @@ class="mt-4 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg
         </div>
     </div>
 
-    <!-- TensorFlow Libraries 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>-->
-    
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
 const MODEL_URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
 
-let model, webcam, labelContainer, maxPredictions;
+let model, webcam;
 
 // START BUTTON
 window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("start-btn").addEventListener("click", init);
+
+    // ✅ ALWAYS SHOW ORDER BUTTON
+    document.getElementById("order-btn").classList.remove("hidden");
+
+    // click action
+    document.getElementById("order-btn").addEventListener("click", () => {
+        alert("🛒 Redirecting to Blinkit soon!");
+    });
 });
 
 // INIT FUNCTION
 async function init() {
     const modelURL = MODEL_URL + "model.json";
-const metadataURL = MODEL_URL + "metadata.json";
+    const metadataURL = MODEL_URL + "metadata.json";
 
     model = await tmImage.load(modelURL, metadataURL);
-    maxPredictions = model.getTotalClasses();
 
     webcam = new tmImage.Webcam(200, 200, true);
     await webcam.setup();
@@ -1146,26 +1147,20 @@ const metadataURL = MODEL_URL + "metadata.json";
     const container = document.getElementById("webcam-container");
     container.innerHTML = "";
     container.appendChild(webcam.canvas);
-
-    labelContainer = document.getElementById("label-container");
-    labelContainer.innerHTML = "";
-
-    for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
-    }
 }
 
 // LOOP
 async function loop() {
     webcam.update();
-    await predict(webcam.canvas);
+    await predict();
     window.requestAnimationFrame(loop);
 }
 
-let lastAlertItem = "";
-async function predict(img) {
-    const prediction = await model.predict(img);
+// PREDICT FUNCTION
+async function predict() {
+    const prediction = await model.predict(webcam.canvas);
 
+    // get best prediction
     let best = prediction[0];
     prediction.forEach(p => {
         if (p.probability > best.probability) best = p;
@@ -1180,7 +1175,8 @@ async function predict(img) {
     else if (level >= 50) status = "Medium Stock";
     else status = "Low Stock";
 
-    document.getElementById("result").innerHTML =
+    // 🖥️ UPDATE UI
+    document.getElementById("label-container").innerHTML =
         `📦 ${item}<br>Stock: ${level}%<br>Status: <b>${status}</b>`;
 
     document.getElementById("fresh-value").innerText = level + "%";
@@ -1189,18 +1185,7 @@ async function predict(img) {
         (level < 50 ? 100 - level : 0) + "%";
 
     document.getElementById("freshness-progress").style.width = level + "%";
-
-    // ✅ BUTTON LOGIC (correct place)
-    const orderBtn = document.getElementById("order-btn");
 }
-    const orderBtn = document.getElementById("order-btn");
-
-
-    document.getElementById("order-btn").addEventListener("click", () => {
-    alert("🚧 Auto-order feature coming soon!");
-});
-// 🛒 SHOW / HIDE ORDER BUTTON
-const orderBtn = document.getElementById("order-btn");
 </script>
 </body>
 </html>
