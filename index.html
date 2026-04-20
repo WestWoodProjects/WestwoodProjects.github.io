@@ -600,9 +600,16 @@
                         Position item clearly in front of the camera for best results
                     </div>
                 </div>
-            <h2 id="result" class="text-lg font-bold text-center mt-4 text-green-700">
-    Waiting for scan...
-</h2>
+<div id="result-box" class="mt-6 p-4 rounded-xl text-center bg-gray-100 border border-gray-200">
+    <div id="result-item" class="text-xl font-bold text-gray-700">Waiting for scan...</div>
+    <div id="result-status" class="text-sm mt-2 text-gray-500"></div>
+</div>
+                <div class="flex justify-center mt-4">
+    <button id="order-btn" 
+    class="bg-yellow-400 text-black px-5 py-2 rounded-full font-semibold hover:bg-yellow-500 transition shadow-md">
+    🛒 Order from Blinkit
+    </button>
+</div>
 
                 <!-- Supported Items Section -->
                 <div class="mt-8">
@@ -703,23 +710,7 @@
                         </div>
 
                     </div>
-<button id="order-btn" 
-class="mt-4 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition">
-🛒 Order from Blinkit
-</button>
-                    
-                    <!-- Progress Bar -->
-                    <div class="mt-4">
-                        <div class="flex justify-between text-sm text-gray-600 mb-1">
-                            <span>Almost EMPTY!!!</span>
-                            <span>Fully Filled</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div id="freshness-progress" class="progress-fill bg-green-500" style="width: 0%"></div>
-                        </div>
-                        <div id="progress-status" class="text-xs text-gray-500 mt-1 text-center">Analysis active</div>
-                    </div>
-                    
+
                     <!-- Action Buttons -->
                     <div class="flex gap-3 mt-6">
                         <button id="save-result-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
@@ -1125,10 +1116,10 @@ let isRunning = false;
 let lastPredictionTime = 0;
 const PREDICTION_INTERVAL = 300;
 
-// START BUTTON
+// START
 document.getElementById("start-btn").addEventListener("click", init);
 
-// STOP BUTTON
+// STOP
 document.getElementById("stop-btn").addEventListener("click", stopCam);
 
 // INIT
@@ -1150,7 +1141,6 @@ async function init() {
         container.innerHTML = "";
         container.appendChild(webcam.canvas);
 
-        // SHOW ANIMATION
         document.getElementById("scan-animation")?.classList.remove("hidden");
         document.getElementById("scan-prompt")?.classList.remove("hidden");
 
@@ -1163,7 +1153,7 @@ async function init() {
     }
 }
 
-// LOOP (SMOOTH)
+// LOOP
 async function loop() {
     if (!webcam || !isRunning) return;
 
@@ -1173,13 +1163,13 @@ async function loop() {
 
     if (now - lastPredictionTime > PREDICTION_INTERVAL) {
         lastPredictionTime = now;
-        predict(); // 🚀 NO await
+        predict();
     }
 
     requestAnimationFrame(loop);
 }
 
-// PREDICT (FIXED)
+// PREDICT
 async function predict() {
     if (!model || !webcam) return;
 
@@ -1194,7 +1184,6 @@ async function predict() {
 
     if (!prediction || prediction.length === 0) return;
 
-    // 🔥 FIND BEST CLASS
     let best = prediction[0];
     for (let i = 1; i < prediction.length; i++) {
         if (prediction[i].probability > best.probability) {
@@ -1210,55 +1199,58 @@ async function predict() {
     else if (level >= 50) status = "Medium Stock ⚠️";
     else status = "Low Stock ❌";
 
-    // RESULT TEXT
-    document.getElementById("result").innerText =
-        `${item} → ${status} (${level}%)`;
+    // 🎯 RESULT UI (CLEAN + BEAUTIFUL)
+    const itemEl = document.getElementById("result-item");
+    const statusEl = document.getElementById("result-status");
+    const box = document.getElementById("result-box");
 
-    // LABEL
+    itemEl.innerText = item;
+    statusEl.innerText = `${status} • Confidence: ${level}%`;
+
+    // 🎨 Color styling
+    box.classList.remove("bg-green-100", "bg-yellow-100", "bg-red-100");
+
+    if (level >= 80) {
+        box.classList.add("bg-green-100");
+    } else if (level >= 50) {
+        box.classList.add("bg-yellow-100");
+    } else {
+        box.classList.add("bg-red-100");
+    }
+
+    // LABEL CONTAINER (small text under camera)
     document.getElementById("label-container").innerHTML =
         `<b>${item}</b><br>${level}%`;
 
-    // ✅ FIXED BARS
-    let fresh = 0, medium = 0, low = 0;
+    // SIMPLE % CARDS (no progress bar)
+    document.getElementById("fresh-value").innerText =
+        level >= 80 ? level + "%" : "0%";
 
-    if (level >= 80) fresh = level;
-    else if (level >= 50) medium = level;
-    else low = level;
+    document.getElementById("maybe-value").innerText =
+        (level >= 50 && level < 80) ? level + "%" : "0%";
 
-    document.getElementById("fresh-value").innerText = fresh + "%";
-    document.getElementById("maybe-value").innerText = medium + "%";
-    document.getElementById("spoiled-value").innerText = low + "%";
-
-    // ✅ PROGRESS BAR + COLOR
-    const bar = document.getElementById("freshness-progress");
-    if (bar) {
-        bar.style.width = level + "%";
-
-        if (level >= 80) bar.className = "progress-fill bg-green-500";
-        else if (level >= 50) bar.className = "progress-fill bg-yellow-400";
-        else bar.className = "progress-fill bg-red-500";
-    }
+    document.getElementById("spoiled-value").innerText =
+        level < 50 ? level + "%" : "0%";
 }
 
-// STOP FUNCTION (FULL FIX)
+// STOP CAMERA
 function stopCam() {
     if (webcam) {
         webcam.stop();
-
-        const container = document.getElementById("webcam-container");
-        container.innerHTML = `
-            <div class="text-center text-gray-400">
-                <i class="fas fa-camera text-4xl"></i>
-                <p>Camera stopped</p>
-            </div>
-        `;
-
-        // 🔥 STOP ANIMATION
-        document.getElementById("scan-animation")?.classList.add("hidden");
-        document.getElementById("scan-prompt")?.classList.add("hidden");
-
-        isRunning = false;
     }
+
+    const container = document.getElementById("webcam-container");
+    container.innerHTML = `
+        <div class="text-center text-gray-400">
+            <i class="fas fa-camera text-4xl"></i>
+            <p>Camera stopped</p>
+        </div>
+    `;
+
+    document.getElementById("scan-animation")?.classList.add("hidden");
+    document.getElementById("scan-prompt")?.classList.add("hidden");
+
+    isRunning = false;
 }
 
 });
