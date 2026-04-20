@@ -1191,10 +1191,13 @@ async function predict() {
     document.querySelectorAll(".item-card").forEach(card => {
         card.classList.remove("item-highlight");
 
-        if (card.dataset.item === item) {
-            card.classList.add("item-highlight");
-        }
-    });
+  document.querySelectorAll(".item-card").forEach(card => {
+    card.classList.remove("item-highlight");
+
+    if (card.dataset.item.toLowerCase() === item.toLowerCase()) {
+        card.classList.add("item-highlight");
+    }
+});
 
     let status = "";
     if (level >= 80) status = "Full Stock ✅";
