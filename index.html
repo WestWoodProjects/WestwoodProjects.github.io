@@ -464,6 +464,11 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+        .item-highlight {
+    border: 3px solid #10b981 !important;
+    box-shadow: 0 0 15px #10b981;
+    transform: scale(1.1);
+}
     </style>
 </head>
 <body>
@@ -612,81 +617,78 @@
 </div>
 
                 <!-- Supported Items Section -->
-                <div class="mt-8">
+<div class="mt-8">
     <h3 class="text-lg font-medium mb-3 flex items-center gap-2">
         <i class="fas fa-check-circle"></i>
         Supported Items
     </h3>
 
-    <div class="supported-items-grid">
+    <div class="supported-items-grid" id="items-grid">
 
-                <!-- GRAINS -->
-        <div class="fruit-card p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col items-center">
+        <!-- GRAINS -->
+        <div class="fruit-card item-card p-3 bg-amber-50 rounded-xl border border-amber-200 flex flex-col items-center" data-item="Rice">
             <span class="text-2xl">🍚</span>
             <span class="mt-2 text-sm font-medium">Rice</span>
         </div>
 
-        <div class="fruit-card p-3 bg-yellow-50 rounded-xl border border-yellow-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-yellow-50 rounded-xl border border-yellow-200 flex flex-col items-center" data-item="Wheat Flour">
             <span class="text-2xl">🌾</span>
             <span class="mt-2 text-sm font-medium">Wheat Flour</span>
         </div>
 
-        <div class="fruit-card p-3 bg-orange-50 rounded-xl border border-orange-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-orange-50 rounded-xl border border-orange-200 flex flex-col items-center" data-item="Bajra Flour">
             <span class="text-2xl">🌾</span>
             <span class="mt-2 text-sm font-medium">Bajra Flour</span>
         </div>
 
-        <div class="fruit-card p-3 bg-amber-100 rounded-xl border border-amber-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-amber-100 rounded-xl border border-amber-200 flex flex-col items-center" data-item="Jowar Flour">
             <span class="text-2xl">🌾</span>
             <span class="mt-2 text-sm font-medium">Jowar Flour</span>
         </div>
 
-        <div class="fruit-card p-3 bg-lime-50 rounded-xl border border-lime-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-lime-50 rounded-xl border border-lime-200 flex flex-col items-center" data-item="Besan Flour">
             <span class="text-2xl">🌾</span>
             <span class="mt-2 text-sm font-medium">Besan Flour</span>
         </div>
 
         <!-- PULSES -->
-        <div class="fruit-card p-3 bg-red-50 rounded-xl border border-red-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-red-50 rounded-xl border border-red-200 flex flex-col items-center" data-item="Moong Dal">
             <span class="text-2xl">🫘</span>
             <span class="mt-2 text-sm font-medium">Moong Dal</span>
         </div>
 
-        <div class="fruit-card p-3 bg-orange-50 rounded-xl border border-orange-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-orange-50 rounded-xl border border-orange-200 flex flex-col items-center" data-item="Masoor Dal">
             <span class="text-2xl">🫘</span>
             <span class="mt-2 text-sm font-medium">Masoor Dal</span>
         </div>
 
-        <div class="fruit-card p-3 bg-green-50 rounded-xl border border-green-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-green-50 rounded-xl border border-green-200 flex flex-col items-center" data-item="Chickpeas">
             <span class="text-2xl">🫘</span>
             <span class="mt-2 text-sm font-medium">Chickpeas</span>
         </div>
 
-        <div class="fruit-card p-3 bg-purple-50 rounded-xl border border-purple-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-purple-50 rounded-xl border border-purple-200 flex flex-col items-center" data-item="Chickpeas Brown">
             <span class="text-2xl">🫘</span>
             <span class="mt-2 text-sm font-medium">Chickpeas Brown</span>
         </div>
 
-        <!-- BREAKFAST ITEMS -->
-        <div class="fruit-card p-3 bg-pink-50 rounded-xl border border-pink-200 flex flex-col items-center">
+        <!-- BREAKFAST -->
+        <div class="fruit-card item-card p-3 bg-pink-50 rounded-xl border border-pink-200 flex flex-col items-center" data-item="Kidney Beans (Rajma)">
             <span class="text-2xl">🥣</span>
             <span class="mt-2 text-sm font-medium">Kidney Beans (Rajma)</span>
         </div>
 
-        <div class="fruit-card p-3 bg-blue-50 rounded-xl border border-blue-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-blue-50 rounded-xl border border-blue-200 flex flex-col items-center" data-item="Poha">
             <span class="text-2xl">🍚</span>
             <span class="mt-2 text-sm font-medium">Poha</span>
         </div>
 
-        <div class="fruit-card p-3 bg-orange-100 rounded-xl border border-orange-200 flex flex-col items-center">
+        <div class="fruit-card item-card p-3 bg-orange-100 rounded-xl border border-orange-200 flex flex-col items-center" data-item="Groundnuts">
             <span class="text-2xl">🥜</span>
             <span class="mt-2 text-sm font-medium">Groundnuts</span>
         </div>
 
     </div>
-</div>
- 
-
 </div>
                 
                     <!-- Action Buttons -->
@@ -1100,6 +1102,19 @@ document.getElementById("start-btn").addEventListener("click", init);
 // STOP
 document.getElementById("stop-btn").addEventListener("click", stopCam);
 
+// ORDER BUTTON (FIXED)
+document.getElementById("order-btn").addEventListener("click", () => {
+    const item = document.getElementById("result-item").innerText;
+
+    if (!item || item === "Waiting for scan...") {
+        alert("Scan an item first!");
+        return;
+    }
+
+    const query = encodeURIComponent(item);
+    window.open(`https://blinkit.com/s/?q=${query}`, "_blank");
+});
+
 // INIT
 async function init() {
     if (isRunning) return;
@@ -1130,17 +1145,6 @@ async function init() {
         isRunning = false;
     }
 }
-    document.getElementById("order-btn").addEventListener("click", () => {
-    const item = document.getElementById("result-item").innerText;
-
-    if (!item || item === "Waiting for scan...") {
-        alert("Scan an item first!");
-        return;
-    }
-
-    const query = encodeURIComponent(item);
-    window.open(`https://blinkit.com/s/?q=${query}`, "_blank");
-});
 
 // LOOP
 async function loop() {
@@ -1183,36 +1187,39 @@ async function predict() {
     let item = best.className;
     let level = Math.round(best.probability * 100);
 
+    // 🔥 HIGHLIGHT DETECTED ITEM
+    document.querySelectorAll(".item-card").forEach(card => {
+        card.classList.remove("item-highlight");
+
+        if (card.dataset.item === item) {
+            card.classList.add("item-highlight");
+        }
+    });
+
     let status = "";
     if (level >= 80) status = "Full Stock ✅";
     else if (level >= 50) status = "Medium Stock ⚠️";
     else status = "Low Stock ❌";
 
-    // 🎯 RESULT UI (CLEAN + BEAUTIFUL)
+    // RESULT UI
     const itemEl = document.getElementById("result-item");
     const statusEl = document.getElementById("result-status");
     const box = document.getElementById("result-box");
 
     itemEl.innerText = item;
 
-statusEl.innerHTML = `
-    <span class="text-lg font-semibold">${status}</span><br>
-    <span class="text-xs text-gray-600">Confidence: ${level}%</span>
-`;
-    itemEl.innerText = item;
+    statusEl.innerHTML = `
+        <span class="text-lg font-semibold">${status}</span><br>
+        <span class="text-xs text-gray-600">Confidence: ${level}%</span>
+    `;
 
-statusEl.innerHTML = `
-    <span class="text-lg font-semibold">${status}</span><br>
-    <span class="text-xs text-gray-600">Confidence: ${level}%</span>
-`;
+    // Animation
+    box.classList.add("scale-105");
+    setTimeout(() => {
+        box.classList.remove("scale-105");
+    }, 200);
 
-// ✨ Animation (ADD THIS HERE)
-box.classList.add("scale-105");
-setTimeout(() => {
-    box.classList.remove("scale-105");
-}, 200);
-
-    // 🎨 Color styling
+    // Color styling
     box.classList.remove("bg-green-100", "bg-yellow-100", "bg-red-100");
 
     if (level >= 80) {
@@ -1223,19 +1230,18 @@ setTimeout(() => {
         box.classList.add("bg-red-100");
     }
 
-    // LABEL CONTAINER (small text under camera)
+    // Small label under camera
     document.getElementById("label-container").innerHTML =
         `<b>${item}</b><br>${level}%`;
 
-    // SIMPLE % CARDS (no progress bar)
-    document.getElementById("fresh-value").innerText =
-        level >= 80 ? level + "%" : "0%";
+    // Optional % cards (safe even if not present)
+    const fresh = document.getElementById("fresh-value");
+    const maybe = document.getElementById("maybe-value");
+    const spoiled = document.getElementById("spoiled-value");
 
-    document.getElementById("maybe-value").innerText =
-        (level >= 50 && level < 80) ? level + "%" : "0%";
-
-    document.getElementById("spoiled-value").innerText =
-        level < 50 ? level + "%" : "0%";
+    if (fresh) fresh.innerText = level >= 80 ? level + "%" : "0%";
+    if (maybe) maybe.innerText = (level >= 50 && level < 80) ? level + "%" : "0%";
+    if (spoiled) spoiled.innerText = level < 50 ? level + "%" : "0%";
 }
 
 // STOP CAMERA
