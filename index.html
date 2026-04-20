@@ -1116,7 +1116,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
-const URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
 
 let model, webcam, labelContainer, maxPredictions;
 
@@ -1127,8 +1127,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // INIT FUNCTION
 async function init() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+    const modelURL = MODEL_URL + "model.json";
+const metadataURL = MODEL_URL + "metadata.json";
 
     model = await tmImage.load(modelURL, metadataURL);
     maxPredictions = model.getTotalClasses();
