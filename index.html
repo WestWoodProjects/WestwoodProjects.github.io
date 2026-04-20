@@ -593,7 +593,7 @@
                             <div id="label-container" class="text-sm text-gray-600 mt-2 text-center"></div>
                         </div>
                         <div class="scan-animation hidden" id="scan-animation"></div>
-                        <div id="scan-prompt" class="scan-prompt hidden">Please position your produce in the center</div>
+                        <div id="scan-prompt" class="scan-prompt hidden">Position item clearly in front of the camera for best results</div>
                     </div>
                     <div class="mt-2 text-sm text-gray-500 text-center">
                         <i class="fas fa-info-circle mr-1"></i>
@@ -1118,7 +1118,7 @@ class="mt-4 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-const URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
+const URL = "https://teachablemachine.withgoogle.com/models/4cByU1YCI/";
 
 let model, webcam;
 let isRunning = false;
@@ -1128,19 +1128,8 @@ const PREDICTION_INTERVAL = 300;
 // START BUTTON
 document.getElementById("start-btn").addEventListener("click", init);
 
-// ORDER BUTTON
-document.getElementById("order-btn").addEventListener("click", () => {
-    const text = document.getElementById("result").innerText;
-
-    if (!text || text.includes("Waiting")) {
-        alert("Scan an item first ❗");
-        return;
-    }
-
-    let item = text.split("→")[0].trim();
-    let url = `https://blinkit.com/s/?q=${encodeURIComponent(item)}`;
-    window.open(url, "_blank");
-});
+// STOP BUTTON
+document.getElementById("stop-btn").addEventListener("click", stopCam);
 
 // INIT
 async function init() {
@@ -1148,15 +1137,12 @@ async function init() {
     isRunning = true;
 
     try {
-        // GPU ON
         await tf.setBackend("webgl");
         await tf.ready();
 
         model = await tmImage.load(URL + "model.json", URL + "metadata.json");
 
-        // Lower resolution = less lag
         webcam = new tmImage.Webcam(224, 224, true);
-
         await webcam.setup();
         await webcam.play();
 
@@ -1164,6 +1150,7 @@ async function init() {
         container.innerHTML = "";
         container.appendChild(webcam.canvas);
 
+        // SHOW ANIMATION
         document.getElementById("scan-animation")?.classList.remove("hidden");
         document.getElementById("scan-prompt")?.classList.remove("hidden");
 
@@ -1176,7 +1163,7 @@ async function init() {
     }
 }
 
-// LOOP
+// LOOP (SMOOTH)
 async function loop() {
     if (!webcam || !isRunning) return;
 
@@ -1186,13 +1173,13 @@ async function loop() {
 
     if (now - lastPredictionTime > PREDICTION_INTERVAL) {
         lastPredictionTime = now;
-        predict(); // no await
+        predict(); // 🚀 NO await
     }
 
     requestAnimationFrame(loop);
 }
 
-// PREDICT
+// PREDICT (FIXED)
 async function predict() {
     if (!model || !webcam) return;
 
@@ -1207,8 +1194,8 @@ async function predict() {
 
     if (!prediction || prediction.length === 0) return;
 
+    // 🔥 FIND BEST CLASS
     let best = prediction[0];
-
     for (let i = 1; i < prediction.length; i++) {
         if (prediction[i].probability > best.probability) {
             best = prediction[i];
@@ -1223,26 +1210,41 @@ async function predict() {
     else if (level >= 50) status = "Medium Stock ⚠️";
     else status = "Low Stock ❌";
 
-    // 🔥 FORCE UI UPDATE
+    // RESULT TEXT
     document.getElementById("result").innerText =
         `${item} → ${status} (${level}%)`;
 
+    // LABEL
     document.getElementById("label-container").innerHTML =
         `<b>${item}</b><br>${level}%`;
 
-    document.getElementById("fresh-value").innerText = level + "%";
-    document.getElementById("maybe-value").innerText = (100 - level) + "%";
-    document.getElementById("spoiled-value").innerText =
-        level < 50 ? (100 - level) + "%" : "0%";
+    // ✅ FIXED BARS
+    let fresh = 0, medium = 0, low = 0;
 
+    if (level >= 80) fresh = level;
+    else if (level >= 50) medium = level;
+    else low = level;
+
+    document.getElementById("fresh-value").innerText = fresh + "%";
+    document.getElementById("maybe-value").innerText = medium + "%";
+    document.getElementById("spoiled-value").innerText = low + "%";
+
+    // ✅ PROGRESS BAR + COLOR
     const bar = document.getElementById("freshness-progress");
-    if (bar) bar.style.width = level + "%";
+    if (bar) {
+        bar.style.width = level + "%";
+
+        if (level >= 80) bar.className = "progress-fill bg-green-500";
+        else if (level >= 50) bar.className = "progress-fill bg-yellow-400";
+        else bar.className = "progress-fill bg-red-500";
+    }
 }
-document.getElementById("stop-btn").addEventListener("click", () => {
+
+// STOP FUNCTION (FULL FIX)
+function stopCam() {
     if (webcam) {
         webcam.stop();
 
-        // 🔥 CLEAR CANVAS (important)
         const container = document.getElementById("webcam-container");
         container.innerHTML = `
             <div class="text-center text-gray-400">
@@ -1251,10 +1253,13 @@ document.getElementById("stop-btn").addEventListener("click", () => {
             </div>
         `;
 
+        // 🔥 STOP ANIMATION
+        document.getElementById("scan-animation")?.classList.add("hidden");
+        document.getElementById("scan-prompt")?.classList.add("hidden");
+
         isRunning = false;
     }
-});
-
+}
 
 });
 </script>
