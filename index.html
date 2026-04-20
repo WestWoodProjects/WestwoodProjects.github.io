@@ -575,6 +575,9 @@
                             <i class="fas fa-play"></i> Start Scan
                         </button>
                         <input type="file" id="upload-btn" accept="image/*" class="mt-3">
+                        <button id="stop-btn" class="bg-red-600 text-white px-4 py-2 rounded-full">
+    Stop
+</button>
 
                     </div>
                 </div>
@@ -1109,17 +1112,18 @@ class="mt-4 bg-yellow-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg
             </div>
         </div>
     </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+
 const URL = "https://teachablemachine.withgoogle.com/models/wcU2bJCTZ/";
 
 let model, webcam;
 let isRunning = false;
 let lastPredictionTime = 0;
-const PREDICTION_INTERVAL = 300; // ms (VERY IMPORTANT)
+const PREDICTION_INTERVAL = 300;
 
 // START BUTTON
 document.getElementById("start-btn").addEventListener("click", init);
@@ -1144,9 +1148,13 @@ async function init() {
     isRunning = true;
 
     try {
+        // GPU ON
+        await tf.setBackend("webgl");
+        await tf.ready();
+
         model = await tmImage.load(URL + "model.json", URL + "metadata.json");
 
-        // 🔥 LOWER RESOLUTION (BIG FIX)
+        // Lower resolution = less lag
         webcam = new tmImage.Webcam(224, 224, true);
 
         await webcam.setup();
@@ -1156,8 +1164,8 @@ async function init() {
         container.innerHTML = "";
         container.appendChild(webcam.canvas);
 
-        document.getElementById("scan-animation").classList.remove("hidden");
-        document.getElementById("scan-prompt").classList.remove("hidden");
+        document.getElementById("scan-animation")?.classList.remove("hidden");
+        document.getElementById("scan-prompt")?.classList.remove("hidden");
 
         requestAnimationFrame(loop);
 
@@ -1168,18 +1176,17 @@ async function init() {
     }
 }
 
-// LOOP (SMOOTH NOW)
+// LOOP
 async function loop() {
-    if (!webcam) return;
+    if (!webcam || !isRunning) return;
 
     webcam.update();
 
     const now = Date.now();
 
-    // 🔥 ONLY RUN MODEL EVERY 300ms
     if (now - lastPredictionTime > PREDICTION_INTERVAL) {
-        await predict();
         lastPredictionTime = now;
+        predict(); // no await
     }
 
     requestAnimationFrame(loop);
@@ -1187,47 +1194,69 @@ async function loop() {
 
 // PREDICT
 async function predict() {
-    if (!model) return;
+    if (!model || !webcam) return;
 
-    const prediction = await model.predict(webcam.canvas);
+    let prediction;
 
-    let best = prediction.reduce((a, b) =>
-        a.probability > b.probability ? a : b
-    );
-
-    let rawLabel = best.className;
-    let confidence = Math.round(best.probability * 100);
-
-    let item = rawLabel;
-    let level = confidence;
-
-    let match = rawLabel.match(/(\d+)/);
-    if (match) {
-        level = parseInt(match[0]);
-        item = rawLabel.replace(/[_\d%]/g, "").trim();
+    try {
+        prediction = await model.predict(webcam.canvas);
+    } catch (e) {
+        console.log("Prediction error", e);
+        return;
     }
 
-    level = Math.max(0, Math.min(100, level));
+    if (!prediction || prediction.length === 0) return;
+
+    let best = prediction[0];
+
+    for (let i = 1; i < prediction.length; i++) {
+        if (prediction[i].probability > best.probability) {
+            best = prediction[i];
+        }
+    }
+
+    let item = best.className;
+    let level = Math.round(best.probability * 100);
 
     let status = "";
     if (level >= 80) status = "Full Stock ✅";
     else if (level >= 50) status = "Medium Stock ⚠️";
     else status = "Low Stock ❌";
 
-    // UI UPDATE
+    // 🔥 FORCE UI UPDATE
+    document.getElementById("result").innerText =
+        `${item} → ${status} (${level}%)`;
+
     document.getElementById("label-container").innerHTML =
-        `📦 <b>${item}</b><br>Stock: ${level}%<br>Status: ${status}`;
+        `<b>${item}</b><br>${level}%`;
 
     document.getElementById("fresh-value").innerText = level + "%";
     document.getElementById("maybe-value").innerText = (100 - level) + "%";
     document.getElementById("spoiled-value").innerText =
         level < 50 ? (100 - level) + "%" : "0%";
 
-    document.getElementById("freshness-progress").style.width = level + "%";
-
-    document.getElementById("result").innerText =
-        `${item} → ${status} (${level}%)`;
+    const bar = document.getElementById("freshness-progress");
+    if (bar) bar.style.width = level + "%";
 }
+document.getElementById("stop-btn").addEventListener("click", () => {
+    if (webcam) {
+        webcam.stop();
+
+        // 🔥 CLEAR CANVAS (important)
+        const container = document.getElementById("webcam-container");
+        container.innerHTML = `
+            <div class="text-center text-gray-400">
+                <i class="fas fa-camera text-4xl"></i>
+                <p>Camera stopped</p>
+            </div>
+        `;
+
+        isRunning = false;
+    }
+});
+
+
+});
 </script>
 </body>
 </html>
