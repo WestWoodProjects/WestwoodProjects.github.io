@@ -644,33 +644,34 @@
     <div id="result-item" class="text-xl font-bold text-gray-700">Waiting for scan...</div>
     <div id="result-status" class="text-sm mt-2 text-gray-500"></div>
 </div>
-                <div class="flex justify-center mt-4">
+                <div class="flex justify-center mt-4"></div>
    <div class="flex flex-wrap justify-center gap-3 mt-4">
+       </div>
+    <div class="flex flex-wrap justify-center gap-3 mt-4">
 
     <!-- Blinkit -->
     <button class="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold shadow-md"
-    onclick="orderItem('blinkit')">
-    🛒 Blinkit
+        onclick="orderItem('blinkit')">
+        🛒 Blinkit
     </button>
 
     <!-- Zepto -->
     <button class="bg-purple-600 text-white px-4 py-2 rounded-full font-semibold shadow-md"
-    onclick="orderItem('zepto')">
-    🟣 Zepto
+        onclick="orderItem('zepto')">
+        🟣 Zepto
     </button>
 
     <!-- Amazon -->
     <button class="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md"
-    onclick="orderItem('amazon')">
-    🛍️ Amazon
+        onclick="orderItem('amazon')">
+        🛍️ Amazon
     </button>
 
     <!-- BigBasket -->
     <button class="bg-green-700 text-white px-4 py-2 rounded-full font-semibold shadow-md"
-    onclick="orderItem('bigbasket')">
-    🥬 BigBasket
+        onclick="orderItem('bigbasket')">
+        🥬 BigBasket
     </button>
-
 </div>
 
                 <!-- Supported Items Section -->
@@ -834,7 +835,7 @@
                             </div>
                             <div class="chart-label">
                                 <span>Items Untracked</span>
-                                <span35></span35>%</span>
+                               <span>35%</span>
                             </div>
                         </div>
                         <p class="text-gray-600 text-sm">Many small stores lack real-time inventory tracking, leading to stock shortages and overstocking.</p>
@@ -848,11 +849,6 @@
                         <p class="text-gray-700">Incorrect stock tracking can lead to missed sales opportunities, customer dissatisfaction, and revenue loss.</p>
                     </div>
                 </div>
-                        <!--</div>
-                    </div>
-                </div>
-            </div>
-        </div>-->
     </section>
 
     <!-- Features Section -->
@@ -1144,22 +1140,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-
-const URL = "https://teachablemachine.withgoogle.com/models/4cByU1YCI/";
-
-let model, webcam;
-let isRunning = false;
-let lastPredictionTime = 0;
-const PREDICTION_INTERVAL = 300;
-
-// START
-document.getElementById("start-btn").addEventListener("click", init);
-
-// STOP
-document.getElementById("stop-btn").addEventListener("click", stopCam);
-
-// ORDER BUTTON (FIXED)
+    // ORDER BUTTON (FIXED)
 function orderItem(platform) {
     const item = document.getElementById("result-item").innerText;
 
@@ -1187,6 +1168,22 @@ function orderItem(platform) {
 
     window.open(url, "_blank");
 }
+document.addEventListener("DOMContentLoaded", () => {
+
+const URL = "https://teachablemachine.withgoogle.com/models/4cByU1YCI/";
+
+let model, webcam;
+let isRunning = false;
+let lastPredictionTime = 0;
+const PREDICTION_INTERVAL = 300;
+
+// START
+document.getElementById("start-btn").addEventListener("click", init);
+
+// STOP
+document.getElementById("stop-btn").addEventListener("click", stopCam);
+
+
 
 // INIT
 async function init() {
