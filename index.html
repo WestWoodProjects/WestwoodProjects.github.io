@@ -1189,9 +1189,6 @@ async function predict() {
 
     // 🔥 HIGHLIGHT DETECTED ITEM
     document.querySelectorAll(".item-card").forEach(card => {
-        card.classList.remove("item-highlight");
-
-  document.querySelectorAll(".item-card").forEach(card => {
     card.classList.remove("item-highlight");
 
     if (card.dataset.item.toLowerCase() === item.toLowerCase()) {
