@@ -769,17 +769,31 @@
 </div>
                 
                     <!-- Action Buttons -->
-                    <div class="flex gap-3 mt-6">
-                        <button id="save-result-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            <i class="fas fa-save"></i> Save Result
-                        </button>
-                        <button id="capture-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2 capture-btn">
-                            <i class="fas fa-camera"></i> Capture Image
-                        </button>
-                        <button id="clear-history-btn" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition flex items-center gap-2">
-                            <i class="fas fa-trash"></i> Clear History
-                        </button>
-                    </div>
+                    <!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row gap-3 mt-6 w-full">
+
+    <!-- Save -->
+    <button id="save-result-btn"
+        class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <i class="fas fa-save"></i>
+        Save Result
+    </button>
+
+    <!-- Capture -->
+    <button id="capture-btn"
+        class="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <i class="fas fa-camera"></i>
+        Capture Image
+    </button>
+
+    <!-- Clear -->
+    <button id="clear-history-btn"
+        class="w-full sm:w-auto bg-red-100 text-red-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+        <i class="fas fa-trash"></i>
+        Clear History
+    </button>
+
+</div>
                     
                     <!-- Image Capture Section -->
                     <div id="image-capture-section" class="mt-6 hidden">
