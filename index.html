@@ -1173,34 +1173,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
-    // ORDER BUTTON (FIXED)
-function orderItem(platform) {
-    const item = document.getElementById("result-item").innerText;
-
-    if (!item || item === "Waiting for scan...") {
-        alert("Scan an item first!");
-        return;
-    }
-
-    const query = encodeURIComponent(item);
-
-    let url = "";
-
-    if (platform === "blinkit") {
-        url = `https://blinkit.com/s/?q=${query}`;
-    } 
-    else if (platform === "zepto") {
-        url = `https://www.zeptonow.com/search?query=${query}`;
-    } 
-    else if (platform === "amazon") {
-        url = `https://www.amazon.in/s?k=${query}`;
-    } 
-    else if (platform === "bigbasket") {
-        url = `https://www.bigbasket.com/ps/?q=${query}`;
-    }
-
-    window.open(url, "_blank");
-}
 document.addEventListener("DOMContentLoaded", () => {
 
 const URL = "https://teachablemachine.withgoogle.com/models/4cByU1YCI/";
@@ -1210,13 +1182,30 @@ let isRunning = false;
 let lastPredictionTime = 0;
 const PREDICTION_INTERVAL = 300;
 
+// ✅ ONLY ACTIVE CLASSES (VERY IMPORTANT)
+const ACTIVE_CLASSES = [
+    "Wheat Needs to be filled",
+    "Wheat Half Filled",
+    "Wheat Fully Filled",
+    "Jowar Needs to be filled",
+    "Jowar Half Filled",
+    "Jowar Fully Filled",
+    "Besan Needs to be filled",
+    "Besan Half Filled",
+    "Besan Fully Filled",
+    "Moong dal Needs to be filled",
+    "Moong dal Half Filled",
+    "Moong dal Fully Filled",
+    "Brown Chickpeas 30",
+    "Brown Chickpeas 50",
+    "Brown Chickpeas 100"
+];
+
 // START
 document.getElementById("start-btn").addEventListener("click", init);
 
 // STOP
 document.getElementById("stop-btn").addEventListener("click", stopCam);
-
-
 
 // INIT
 async function init() {
@@ -1244,7 +1233,7 @@ async function init() {
 
     } catch (e) {
         console.error(e);
-        alert("❌ Camera/model error");
+        alert("❌ Camera or model error");
         isRunning = false;
     }
 }
@@ -1256,7 +1245,6 @@ async function loop() {
     webcam.update();
 
     const now = Date.now();
-
     if (now - lastPredictionTime > PREDICTION_INTERVAL) {
         lastPredictionTime = now;
         predict();
@@ -1265,7 +1253,7 @@ async function loop() {
     requestAnimationFrame(loop);
 }
 
-// PREDICT
+// 🔥 PREDICT (FINAL LOGIC)
 async function predict() {
     if (!model || !webcam) return;
 
@@ -1278,33 +1266,47 @@ async function predict() {
         return;
     }
 
-    if (!prediction || prediction.length === 0) return;
+    // ✅ FILTER ONLY ACTIVE CLASSES
+   let best = prediction
+    .filter(p => ACTIVE_CLASSES.includes(p.className))
+    .sort((a, b) => b.probability - a.probability)[0];
 
-    let best = prediction[0];
-    for (let i = 1; i < prediction.length; i++) {
-        if (prediction[i].probability > best.probability) {
+if (!best || best.probability < 0.6) return;
+
+    for (let i = 0; i < prediction.length; i++) {
+        if (!ACTIVE_CLASSES.includes(prediction[i].className)) continue;
+
+        if (!best || prediction[i].probability > best.probability) {
             best = prediction[i];
         }
     }
 
-    let item = best.className;
-    let level = Math.round(best.probability * 100);
+    if (!best) return;
 
-    // 🔥 HIGHLIGHT DETECTED ITEM
-    document.querySelectorAll(".item-card").forEach(card => {
-    card.classList.remove("item-highlight");
+    let raw = best.className.toLowerCase();
 
-    if (card.dataset.item.toLowerCase() === item.toLowerCase()) {
-        card.classList.add("item-highlight");
-    }
-});
+    // ✅ CLEAN ITEM NAME
+    let item = raw
+        .replace("needs to be filled", "")
+        .replace("half filled", "")
+        .replace("fully filled", "")
+        .replace("30", "")
+        .replace("50", "")
+        .replace("100", "")
+        .trim();
 
+    // Capitalize nicely
+    item = item.replace(/\b\w/g, l => l.toUpperCase());
+
+    // ✅ STATUS FROM CLASS NAME
     let status = "";
-    if (level >= 80) status = "Full Stock ✅";
-    else if (level >= 50) status = "Medium Stock ⚠️";
+    if (raw.includes("fully") || raw.includes("100")) status = "Full Stock ✅";
+    else if (raw.includes("half") || raw.includes("50")) status = "Medium Stock ⚠️";
     else status = "Low Stock ❌";
 
-    // RESULT UI
+    let confidence = Math.round(best.probability * 100);
+
+    // 🎯 UPDATE UI
     const itemEl = document.getElementById("result-item");
     const statusEl = document.getElementById("result-status");
     const box = document.getElementById("result-box");
@@ -1313,51 +1315,50 @@ async function predict() {
 
     statusEl.innerHTML = `
         <span class="text-lg font-semibold">${status}</span><br>
-        <span class="text-xs text-gray-600">Confidence: ${level}%</span>
+        <span class="text-xs text-gray-600">Confidence: ${confidence}%</span>
     `;
 
-    // Animation
-    box.classList.add("scale-105");
-    setTimeout(() => {
-        box.classList.remove("scale-105");
-    }, 200);
-
-    // Color styling
+    // 🎨 COLOR CHANGE
     box.classList.remove("bg-green-100", "bg-yellow-100", "bg-red-100");
 
-    if (level >= 80) {
-        box.classList.add("bg-green-100");
-    } else if (level >= 50) {
-        box.classList.add("bg-yellow-100");
-    } else {
-        box.classList.add("bg-red-100");
+    if (status.includes("Full")) box.classList.add("bg-green-100");
+    else if (status.includes("Medium")) box.classList.add("bg-yellow-100");
+    else box.classList.add("bg-red-100");
+
+    // 🔥 GRID HIGHLIGHT FIX
+    document.querySelectorAll(".item-card").forEach(card => {
+        card.classList.remove("item-highlight");
+
+        if (card.dataset.item.toLowerCase() === item.toLowerCase()) {
+            card.classList.add("item-highlight");
+        }
+    });
+
+    // 📱 SMALL LABEL UNDER CAMERA
+    const label = document.getElementById("label-container");
+    if (label) {
+        label.innerHTML = `<b>${item}</b><br>${confidence}%`;
     }
-
-    // Small label under camera
-    document.getElementById("label-container").innerHTML =
-        `<b>${item}</b><br>${level}%`;
-
-    // Optional % cards (safe even if not present)
-    const fresh = document.getElementById("fresh-value");
-    const maybe = document.getElementById("maybe-value");
-    const spoiled = document.getElementById("spoiled-value");
-
-    if (fresh) fresh.innerText = level >= 80 ? level + "%" : "0%";
-    if (maybe) maybe.innerText = (level >= 50 && level < 80) ? level + "%" : "0%";
-    if (spoiled) spoiled.innerText = level < 50 ? level + "%" : "0%";
 }
 
 // STOP CAMERA
 function stopCam() {
-    if (webcam) {
-        webcam.stop();
-    }
+if (webcam) {
+    webcam.stop();
+    webcam = null; // fully reset
+}
 
     const container = document.getElementById("webcam-container");
     container.innerHTML = `
         <div class="text-center text-gray-400">
             <i class="fas fa-camera text-4xl"></i>
-            <p>Camera stopped</p>
+            <p>container.innerHTML = `
+<div class="text-center text-gray-400">
+    <i class="fas fa-camera text-4xl mb-2"></i>
+    <p class="font-medium">Camera stopped</p>
+    <p class="text-xs">Click "Start Scan" to resume</p>
+</div>
+`;</p>
         </div>
     `;
 
