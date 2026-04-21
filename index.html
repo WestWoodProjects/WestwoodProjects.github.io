@@ -1253,11 +1253,16 @@ async function predict() {
         return;
     }
 
-    let best = prediction
-        .filter(p => ACTIVE_CLASSES.includes(p.className))
-        .sort((a, b) => b.probability - a.probability)[0];
+let best = prediction.sort((a, b) => b.probability - a.probability)[0];
 
-    if (!best || best.probability < 0.6) return;
+    if (!best || best.probability < 0.3) return;
+    let best = prediction.sort((a, b) => b.probability - a.probability)[0];
+
+if (!best || best.probability < 0.3) return;
+
+// ✅ ADD THIS LINE HERE
+document.getElementById("result-item").innerText =
+    best.className + " (" + Math.round(best.probability * 100) + "%)";
 
     let raw = best.className.toLowerCase();
 
