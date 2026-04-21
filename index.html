@@ -1169,7 +1169,7 @@ let isRunning = false;
 let lastPredictionTime = 0;
 const PREDICTION_INTERVAL = 300;
 
-// ✅ ONLY ACTIVE CLASSES (VERY IMPORTANT)
+// ✅ ONLY YOUR VALID CLASSES
 const ACTIVE_CLASSES = [
     "Wheat Needs to be filled",
     "Wheat Half Filled",
@@ -1188,16 +1188,16 @@ const ACTIVE_CLASSES = [
     "Brown Chickpeas 100"
 ];
 
-// START
+// ================= START =================
 document.getElementById("start-btn").addEventListener("click", init);
-
-// STOP
 document.getElementById("stop-btn").addEventListener("click", stopCam);
 
-// INIT
+// ================= INIT =================
 async function init() {
     if (isRunning) return;
     isRunning = true;
+
+    console.log("🚀 Starting scan...");
 
     try {
         await tf.setBackend("webgl");
@@ -1220,12 +1220,12 @@ async function init() {
 
     } catch (e) {
         console.error(e);
-        alert("❌ Camera or model error");
+        alert("❌ Camera or model error. Allow camera access.");
         isRunning = false;
     }
 }
 
-// LOOP
+// ================= LOOP =================
 async function loop() {
     if (!webcam || !isRunning) return;
 
@@ -1240,7 +1240,7 @@ async function loop() {
     requestAnimationFrame(loop);
 }
 
-// 🔥 PREDICT (FINAL LOGIC)
+// ================= PREDICT =================
 async function predict() {
     if (!model || !webcam) return;
 
@@ -1253,26 +1253,15 @@ async function predict() {
         return;
     }
 
-    // ✅ FILTER ONLY ACTIVE CLASSES
-   let best = prediction
-    .filter(p => ACTIVE_CLASSES.includes(p.className))
-    .sort((a, b) => b.probability - a.probability)[0];
+    let best = prediction
+        .filter(p => ACTIVE_CLASSES.includes(p.className))
+        .sort((a, b) => b.probability - a.probability)[0];
 
-if (!best || best.probability < 0.6) return;
-
-    for (let i = 0; i < prediction.length; i++) {
-        if (!ACTIVE_CLASSES.includes(prediction[i].className)) continue;
-
-        if (!best || prediction[i].probability > best.probability) {
-            best = prediction[i];
-        }
-    }
-
-    if (!best) return;
+    if (!best || best.probability < 0.6) return;
 
     let raw = best.className.toLowerCase();
 
-    // ✅ CLEAN ITEM NAME
+    // CLEAN NAME
     let item = raw
         .replace("needs to be filled", "")
         .replace("half filled", "")
@@ -1282,10 +1271,9 @@ if (!best || best.probability < 0.6) return;
         .replace("100", "")
         .trim();
 
-    // Capitalize nicely
     item = item.replace(/\b\w/g, l => l.toUpperCase());
 
-    // ✅ STATUS FROM CLASS NAME
+    // STATUS
     let status = "";
     if (raw.includes("fully") || raw.includes("100")) status = "Full Stock ✅";
     else if (raw.includes("half") || raw.includes("50")) status = "Medium Stock ⚠️";
@@ -1293,26 +1281,22 @@ if (!best || best.probability < 0.6) return;
 
     let confidence = Math.round(best.probability * 100);
 
-    // 🎯 UPDATE UI
-    const itemEl = document.getElementById("result-item");
-    const statusEl = document.getElementById("result-status");
-    const box = document.getElementById("result-box");
+    // UI UPDATE
+    document.getElementById("result-item").innerText = item;
 
-    itemEl.innerText = item;
-
-    statusEl.innerHTML = `
+    document.getElementById("result-status").innerHTML = `
         <span class="text-lg font-semibold">${status}</span><br>
         <span class="text-xs text-gray-600">Confidence: ${confidence}%</span>
     `;
 
-    // 🎨 COLOR CHANGE
+    const box = document.getElementById("result-box");
     box.classList.remove("bg-green-100", "bg-yellow-100", "bg-red-100");
 
     if (status.includes("Full")) box.classList.add("bg-green-100");
     else if (status.includes("Medium")) box.classList.add("bg-yellow-100");
     else box.classList.add("bg-red-100");
 
-    // 🔥 GRID HIGHLIGHT FIX
+    // GRID HIGHLIGHT
     document.querySelectorAll(".item-card").forEach(card => {
         card.classList.remove("item-highlight");
 
@@ -1321,31 +1305,27 @@ if (!best || best.probability < 0.6) return;
         }
     });
 
-    // 📱 SMALL LABEL UNDER CAMERA
+    // SMALL LABEL
     const label = document.getElementById("label-container");
     if (label) {
         label.innerHTML = `<b>${item}</b><br>${confidence}%`;
     }
 }
 
-// STOP CAMERA
+// ================= STOP =================
 function stopCam() {
-if (webcam) {
-    webcam.stop();
-    webcam = null; // fully reset
-}
+    if (webcam) {
+        webcam.stop();
+        webcam = null;
+    }
 
     const container = document.getElementById("webcam-container");
+
     container.innerHTML = `
         <div class="text-center text-gray-400">
-            <i class="fas fa-camera text-4xl"></i>
-            <p>container.innerHTML = `
-<div class="text-center text-gray-400">
-    <i class="fas fa-camera text-4xl mb-2"></i>
-    <p class="font-medium">Camera stopped</p>
-    <p class="text-xs">Click "Start Scan" to resume</p>
-</div>
-`;</p>
+            <i class="fas fa-camera text-4xl mb-2"></i>
+            <p class="font-medium">Camera stopped</p>
+            <p class="text-xs">Click "Start Scan" to resume</p>
         </div>
     `;
 
