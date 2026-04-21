@@ -684,13 +684,8 @@
     <button class="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md"
         onclick="orderItem('amazon')">
         🛍️ Amazon
-    </button>
 
-    <!-- BigBasket -->
-    <button class="bg-green-700 text-white px-4 py-2 rounded-full font-semibold shadow-md"
-        onclick="orderItem('bigbasket')">
-        🥬 BigBasket
-    </button>
+    
 </div>
 
                 <!-- Supported Items Section -->
@@ -1353,9 +1348,7 @@ function stopCam() {
     else if (platform === "amazon") {
         url = `https://www.amazon.in/s?k=${encodeURIComponent(item)}`;
     } 
-    else if (platform === "bigbasket") {
-        url = `https://www.bigbasket.com/ps/?q=${encodeURIComponent(item)}`;
-    }
+ 
 
     if (url) {
         window.open(url, "_blank");
