@@ -469,6 +469,41 @@
     box-shadow: 0 0 15px #10b981;
     transform: scale(1.1);
 }
+        /* 📱 MOBILE OPTIMIZATION */
+@media (max-width: 768px) {
+
+    body {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    #start-btn, #stop-btn, #order-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .supported-items-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .camera-frame {
+        aspect-ratio: 4/3;
+    }
+
+    #result-box {
+        font-size: 0.9rem;
+    }
+}
+
+/* 📱 TABLET */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .supported-items-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
     </style>
 </head>
 <body>
@@ -610,10 +645,32 @@
     <div id="result-status" class="text-sm mt-2 text-gray-500"></div>
 </div>
                 <div class="flex justify-center mt-4">
-    <button id="order-btn" 
-    class="bg-yellow-400 text-black px-5 py-2 rounded-full font-semibold hover:bg-yellow-500 transition shadow-md">
-    🛒 Order from Blinkit
+   <div class="flex flex-wrap justify-center gap-3 mt-4">
+
+    <!-- Blinkit -->
+    <button class="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold shadow-md"
+    onclick="orderItem('blinkit')">
+    🛒 Blinkit
     </button>
+
+    <!-- Zepto -->
+    <button class="bg-purple-600 text-white px-4 py-2 rounded-full font-semibold shadow-md"
+    onclick="orderItem('zepto')">
+    🟣 Zepto
+    </button>
+
+    <!-- Amazon -->
+    <button class="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md"
+    onclick="orderItem('amazon')">
+    🛍️ Amazon
+    </button>
+
+    <!-- BigBasket -->
+    <button class="bg-green-700 text-white px-4 py-2 rounded-full font-semibold shadow-md"
+    onclick="orderItem('bigbasket')">
+    🥬 BigBasket
+    </button>
+
 </div>
 
                 <!-- Supported Items Section -->
@@ -1103,7 +1160,7 @@ document.getElementById("start-btn").addEventListener("click", init);
 document.getElementById("stop-btn").addEventListener("click", stopCam);
 
 // ORDER BUTTON (FIXED)
-document.getElementById("order-btn").addEventListener("click", () => {
+function orderItem(platform) {
     const item = document.getElementById("result-item").innerText;
 
     if (!item || item === "Waiting for scan...") {
@@ -1112,8 +1169,24 @@ document.getElementById("order-btn").addEventListener("click", () => {
     }
 
     const query = encodeURIComponent(item);
-    window.open(`https://blinkit.com/s/?q=${query}`, "_blank");
-});
+
+    let url = "";
+
+    if (platform === "blinkit") {
+        url = `https://blinkit.com/s/?q=${query}`;
+    } 
+    else if (platform === "zepto") {
+        url = `https://www.zeptonow.com/search?query=${query}`;
+    } 
+    else if (platform === "amazon") {
+        url = `https://www.amazon.in/s?k=${query}`;
+    } 
+    else if (platform === "bigbasket") {
+        url = `https://www.bigbasket.com/ps/?q=${query}`;
+    }
+
+    window.open(url, "_blank");
+}
 
 // INIT
 async function init() {
