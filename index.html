@@ -1253,20 +1253,17 @@ async function predict() {
         return;
     }
 
-let best = prediction.sort((a, b) => b.probability - a.probability)[0];
-
-    if (!best || best.probability < 0.3) return;
+    // ✅ ONLY ONE best
     let best = prediction.sort((a, b) => b.probability - a.probability)[0];
 
-if (!best || best.probability < 0.3) return;
+    if (!best || best.probability < 0.3) return;
 
-// ✅ ADD THIS LINE HERE
-document.getElementById("result-item").innerText =
-    best.className + " (" + Math.round(best.probability * 100) + "%)";
+    // DEBUG TEXT (AI OUTPUT)
+    document.getElementById("result-item").innerText =
+        best.className + " (" + Math.round(best.probability * 100) + "%)";
 
     let raw = best.className.toLowerCase();
 
-    // CLEAN NAME
     let item = raw
         .replace("needs to be filled", "")
         .replace("half filled", "")
@@ -1278,7 +1275,6 @@ document.getElementById("result-item").innerText =
 
     item = item.replace(/\b\w/g, l => l.toUpperCase());
 
-    // STATUS
     let status = "";
     if (raw.includes("fully") || raw.includes("100")) status = "Full Stock ✅";
     else if (raw.includes("half") || raw.includes("50")) status = "Medium Stock ⚠️";
@@ -1286,7 +1282,6 @@ document.getElementById("result-item").innerText =
 
     let confidence = Math.round(best.probability * 100);
 
-    // UI UPDATE
     document.getElementById("result-item").innerText = item;
 
     document.getElementById("result-status").innerHTML = `
@@ -1301,7 +1296,6 @@ document.getElementById("result-item").innerText =
     else if (status.includes("Medium")) box.classList.add("bg-yellow-100");
     else box.classList.add("bg-red-100");
 
-    // GRID HIGHLIGHT
     document.querySelectorAll(".item-card").forEach(card => {
         card.classList.remove("item-highlight");
 
@@ -1310,7 +1304,6 @@ document.getElementById("result-item").innerText =
         }
     });
 
-    // SMALL LABEL
     const label = document.getElementById("label-container");
     if (label) {
         label.innerHTML = `<b>${item}</b><br>${confidence}%`;
