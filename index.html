@@ -1334,6 +1334,33 @@ function stopCam() {
 }
 
 });
+    function orderItem(platform) {
+    const item = document.getElementById("result-item").innerText;
+
+    if (!item || item === "Waiting for scan...") {
+        alert("⚠️ Scan an item first!");
+        return;
+    }
+
+    let url = "";
+
+    if (platform === "blinkit") {
+        url = `https://blinkit.com/s/?q=${encodeURIComponent(item)}`;
+    } 
+    else if (platform === "zepto") {
+        url = `https://www.zeptonow.com/search?query=${encodeURIComponent(item)}`;
+    } 
+    else if (platform === "amazon") {
+        url = `https://www.amazon.in/s?k=${encodeURIComponent(item)}`;
+    } 
+    else if (platform === "bigbasket") {
+        url = `https://www.bigbasket.com/ps/?q=${encodeURIComponent(item)}`;
+    }
+
+    if (url) {
+        window.open(url, "_blank");
+    }
+}
 </script>
 </body>
 </html>
