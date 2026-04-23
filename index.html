@@ -575,7 +575,7 @@
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center">
                     <h1 class="text-2xl md:text-3xl font-bold flex items-center gap-3 text-gray-800">
-                       <img src="logo.png" alt="ShelfSense Logo" class="h-16 w-16 object-contain">
+                        <i class="fas fa-apple-alt"></i>
                         ShelfSense AI
                     </h1>
                 </div>
@@ -641,51 +641,75 @@
 
             </div>
                 
-                <!-- Camera Container -->
-                <div class="relative">
-                    <div class="bg-gray-100 rounded-xl overflow-hidden aspect-video border-4 border-green-500 camera-frame relative">
-                        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400">
-                            <div class="text-center">
-                                <i class="fas fa-camera text-5xl mb-4"></i>
-                                <p>Camera ready when you start scanning</p>
-                            </div>
-                            <div id="label-container" class="text-sm text-gray-600 mt-2 text-center"></div>
-                        </div>
-                        <div class="scan-animation hidden" id="scan-animation"></div>
-                        <div id="scan-prompt" class="scan-prompt hidden">Position item clearly in front of the camera for best results</div>
-                    </div>
-                    <div class="mt-2 text-sm text-gray-500 text-center">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Position item clearly in front of the camera for best results
-                    </div>
-                </div>
-<div id="result-box" class="mt-6 p-4 rounded-xl text-center bg-gray-100 border border-gray-200">
-    <div id="result-item" class="text-xl font-bold text-gray-700">Waiting for scan...</div>
-    <div id="result-status" class="text-sm mt-2 text-gray-500"></div>
-</div>
-                <div class="flex justify-center mt-4"></div>
-   <div class="flex flex-wrap justify-center gap-3 mt-4">
-       </div>
-    <div class="flex flex-wrap justify-center gap-3 mt-4">
+               <!-- Camera Container -->
+<div class="relative">
+    <div class="bg-gray-100 rounded-xl overflow-hidden aspect-video border-4 border-green-500 camera-frame relative">
+        
+        <div id="webcam-container" class="w-full h-full flex items-center justify-center text-gray-400">
+            <div class="text-center">
+                <i class="fas fa-camera text-5xl mb-4"></i>
+                <p>Camera ready when you start scanning</p>
+            </div>
+            <div id="label-container" class="text-sm text-gray-600 mt-2 text-center"></div>
+        </div>
 
-    <!-- Blinkit -->
+        <div class="scan-animation hidden" id="scan-animation"></div>
+        <div id="scan-prompt" class="scan-prompt hidden">
+            Position item clearly in front of the camera for best results
+        </div>
+
+    </div>
+
+    <div class="mt-2 text-sm text-gray-500 text-center">
+        <i class="fas fa-info-circle mr-1"></i>
+        Position item clearly in front of the camera for best results
+    </div>
+</div>
+
+<!-- 🔵 RESULT BOX (ONLY CURRENT SCAN) -->
+<div id="result-box" class="mt-6 p-4 rounded-xl text-center bg-gray-100 border border-gray-200">
+
+    <div id="result-item" class="text-xl font-bold text-gray-700">
+        Waiting for scan...
+    </div>
+
+    <div id="result-status" class="text-sm mt-2 text-gray-500"></div>
+
+</div>
+
+<!-- 🔴 LOW STOCK BOX (SEPARATE) -->
+<div class="mt-6 p-4 bg-white rounded-xl shadow-md border border-red-200">
+
+    <h3 class="text-lg font-bold text-red-600 mb-2">
+        ⚠ Items to Refill
+    </h3>
+
+    <ul id="lowStockList" class="space-y-2 text-left">
+        <li class="text-green-600 font-medium">
+            ✅ All items are full
+        </li>
+    </ul>
+
+</div>
+
+<!-- 🛒 ORDER BUTTONS -->
+<div class="flex flex-wrap justify-center gap-3 mt-6">
+
     <button class="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold shadow-md"
         onclick="orderItem('blinkit')">
         🛒 Blinkit
     </button>
 
-    <!-- Zepto -->
     <button class="bg-purple-600 text-white px-4 py-2 rounded-full font-semibold shadow-md"
         onclick="orderItem('zepto')">
         🟣 Zepto
     </button>
 
-    <!-- Amazon -->
     <button class="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md"
         onclick="orderItem('amazon')">
         🛍️ Amazon
+    </button>
 
-    
 </div>
 
                 <!-- Supported Items Section -->
@@ -1155,12 +1179,53 @@
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
 <script>
+
+// ✅ Step 1: Create array HERE (top of script)
+let lowStockItems = [];
+
+// Step 2: function uses the array
+function checkItem(itemName, level) {
+  if (level === "Need to Fill") {
+    if (!lowStockItems.includes(itemName)) {
+      lowStockItems.push(itemName);
+    }
+  } else {
+    lowStockItems = lowStockItems.filter(item => item !== itemName);
+  }
+
+  updateList();
+}
+
+// Step 3: update UI
+function updateList() {
+  const list = document.getElementById("lowStockList");
+  list.innerHTML = "";
+
+  // If no low items
+  if (lowStockItems.length === 0) {
+    list.innerHTML = `
+      <li class="text-green-600 font-medium">
+        ✅ All items are full
+      </li>
+    `;
+    return;
+  }
+
+  // Show low items
+  lowStockItems.forEach(item => {
+    const li = document.createElement("li");
+    li.className = "bg-red-100 text-red-700 px-3 py-2 rounded-lg";
+    li.textContent = item;
+    list.appendChild(li);
+  });
+}
 document.addEventListener("DOMContentLoaded", () => {
 
 const URL = "https://teachablemachine.withgoogle.com/models/4cByU1YCI/";
 
 let model, webcam;
 let isRunning = false;
+let lastItem = "";
 let lastPredictionTime = 0;
 const PREDICTION_INTERVAL = 300;
 
@@ -1248,34 +1313,46 @@ async function predict() {
         return;
     }
 
-    // ✅ ONLY ONE best
-    let best = prediction.sort((a, b) => b.probability - a.probability)[0];
+    // 🔥 Get BEST prediction
+    let best = prediction.reduce((max, p) =>
+        p.probability > max.probability ? p : max,
+        prediction[0]
+    );
 
-    if (!best || best.probability < 0.3) return;
+    if (!best) return;
 
-    // DEBUG TEXT (AI OUTPUT)
-    document.getElementById("result-item").innerText =
-        best.className + " (" + Math.round(best.probability * 100) + "%)";
+    let confidence = Math.round(best.probability * 100);
+
+    // ❌ Ignore weak predictions completely
+    if (confidence < 75) return;
 
     let raw = best.className.toLowerCase();
 
+    // 🧠 Clean item name properly
     let item = raw
-        .replace("needs to be filled", "")
-        .replace("half filled", "")
-        .replace("fully filled", "")
-        .replace("30", "")
-        .replace("50", "")
-        .replace("100", "")
+        .replace(/needs to be filled|half filled|fully filled/g, "")
+        .replace(/30|50|100/g, "")
+        .replace(/\s+/g, " ")
         .trim();
 
     item = item.replace(/\b\w/g, l => l.toUpperCase());
 
+    // 📊 Detect stock level
     let status = "";
-    if (raw.includes("fully") || raw.includes("100")) status = "Full Stock ✅";
-    else if (raw.includes("half") || raw.includes("50")) status = "Medium Stock ⚠️";
-    else status = "Low Stock ❌";
+    if (raw.includes("fully") || raw.includes("100")) {
+        status = "Full Stock ✅";
+    } else if (raw.includes("half") || raw.includes("50")) {
+        status = "Medium Stock ⚠️";
+    } else {
+        status = "Low Stock ❌";
+    }
 
-    let confidence = Math.round(best.probability * 100);
+    // 🚫 SUPER STABLE anti-flicker logic
+    if (item === lastItem && confidence < 90) return;
+
+    lastItem = item;
+
+    // ================= UI UPDATE =================
 
     document.getElementById("result-item").innerText = item;
 
@@ -1284,6 +1361,7 @@ async function predict() {
         <span class="text-xs text-gray-600">Confidence: ${confidence}%</span>
     `;
 
+    // 🎨 Smooth color transition
     const box = document.getElementById("result-box");
     box.classList.remove("bg-green-100", "bg-yellow-100", "bg-red-100");
 
@@ -1291,6 +1369,7 @@ async function predict() {
     else if (status.includes("Medium")) box.classList.add("bg-yellow-100");
     else box.classList.add("bg-red-100");
 
+    // ✨ Highlight detected item
     document.querySelectorAll(".item-card").forEach(card => {
         card.classList.remove("item-highlight");
 
@@ -1299,6 +1378,10 @@ async function predict() {
         }
     });
 
+    // 📦 Update stock tracking
+    checkItem(item, status.includes("Low") ? "Need to Fill" : "Full");
+
+    // 🏷 Debug label (clean)
     const label = document.getElementById("label-container");
     if (label) {
         label.innerHTML = `<b>${item}</b><br>${confidence}%`;
