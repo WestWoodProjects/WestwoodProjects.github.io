@@ -604,9 +604,9 @@
 <!-- Scanner Section -->
 <section id="scanner" class="presentation-section py-12 bg-gradient-to-b from-green-50 to-white">
     <div class="container mx-auto px-4">
-        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 <!-- LEFT SIDE (Scanner) -->
-<div class="flex-1 min-w-0 bg-white rounded-2xl shadow-xl p-6 md:p-8 glow-box">
+<div class="lg:col-span-3 bg-white rounded-2xl shadow-xl p-6 md:p-8 glow-box">
             
             <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
                 
@@ -625,13 +625,6 @@
                         <i class="fas fa-play"></i>
                         Start Scan
                     </button>
-                        
-                    <br/>
-                    <!-- Upload -->
-                    <input type="file"
-                        id="upload-btn"
-                        accept="image/*"
-                        class="w-full sm:w-auto text-sm border border-gray-300 p-2 rounded-lg cursor-pointer bg-white">
 
                     <!-- Stop -->
                     <button id="stop-btn"
@@ -846,31 +839,6 @@
                         </ul>
                     </div>
                 </div>
-<!-- 🤖 FOOD AI ASSISTANT (LEFT SIDE) -->
-<div class="mt-6 p-4 bg-white rounded-xl border border-blue-200">
-
-    <h3 class="text-lg font-bold text-blue-600 mb-3">
-        🤖 Food AI Assistant
-    </h3>
-
-    <div class="flex gap-2">
-        <input id="ai-input"
-            type="text"
-            placeholder="Ask about food storage..."
-            class="flex-1 border p-2 rounded-lg text-sm">
-
-        <button onclick="askAI()"
-            class="bg-blue-600 text-white px-3 rounded-lg">
-            Ask
-        </button>
-    </div>
-
-    <div id="ai-response"
-        class="mt-3 text-sm bg-gray-100 p-3 rounded-lg text-gray-700">
-        Ask something like: "How to store wheat flour?"
-    </div>
-
-</div>
                 
                 <!-- Scan History -->
                 <div id="history-container" class="mt-8 hidden">
@@ -885,7 +853,7 @@
 </div> <!-- END LEFT SIDE (Scanner) -->
 
 <!-- RIGHT SIDE (Shopping List) -->
-<div class="w-full md:w-[320px] lg:w-[340px] xl:w-[360px] 
+<div class="lg:col-span-1 w-full
 bg-white rounded-2xl shadow-xl p-5 border 
 md:sticky md:top-24 self-start">
 
