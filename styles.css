@@ -462,6 +462,20 @@ body {
     transform: scale(1.1);
 }
 
+/* Ensure interactive elements show pointer cursor */
+button,
+.option-btn,
+.interactive-card,
+.item-card,
+.fruit-card,
+.nav-link,
+.capture-btn,
+.demo-btn,
+.saved-image,
+[role="button"] {
+    cursor: pointer;
+}
+
 /* 📱 MOBILE OPTIMIZATION */
 @media (max-width: 768px) {
 
