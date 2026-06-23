@@ -201,3 +201,50 @@ function askAI() {
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof loadShoppingList === 'function') loadShoppingList();
 });
+
+// --- Quick diagnostics and fallback helpers ---
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        console.group('App diagnostics');
+        console.log('tf:', typeof tf);
+        console.log('tmImage:', typeof tmImage);
+        console.log('setupScanner:', typeof window.setupScanner);
+        const startBtn = document.getElementById('start-btn');
+        console.log('start-btn exists:', !!startBtn);
+        if (startBtn) console.log(startBtn.outerHTML);
+
+        // attempt to find common overlay elements and hide them to avoid blocking clicks
+        const overlayCandidates = [
+            document.getElementById('modal-overlay'),
+            document.querySelector('.overlay'),
+            document.getElementById('overlay'),
+            document.querySelector('[role="dialog"]')
+        ].filter(Boolean);
+        if (overlayCandidates.length) {
+            overlayCandidates.forEach(o => {
+                if (o) {
+                    console.log('found overlay:', o.id || o.className || o.tagName, getComputedStyle(o).display, getComputedStyle(o).zIndex, 'pointerEvents=', getComputedStyle(o).pointerEvents);
+                    o.style.display = 'none';
+                    o.style.pointerEvents = 'none';
+                    console.log('overlay hidden');
+                }
+            });
+        } else {
+            console.log('no overlay-like element found');
+        }
+
+        // fallback: if Start button exists and doesn't have a handler, attach one that calls setupScanner
+        if (startBtn && !startBtn.dataset.fallbackAttached) {
+            startBtn.addEventListener('click', () => {
+                console.log('Fallback start button click — invoking window.setupScanner if available');
+                try { if (typeof window.setupScanner === 'function') window.setupScanner(); }
+                catch (err) { console.error('fallback start error', err); }
+            });
+            startBtn.dataset.fallbackAttached = '1';
+        }
+
+        console.groupEnd();
+    } catch (e) {
+        console.error('Diagnostics failed', e);
+    }
+});
