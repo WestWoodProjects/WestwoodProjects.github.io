@@ -193,18 +193,15 @@
 <!-- 🛒 ORDER BUTTONS -->
 <div class="flex flex-wrap justify-center gap-3 mt-6">
 
-    <button type="button" class="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold shadow-md"
-        onclick="orderItem('blinkit')">
+<button id="order-blinkit-btn" type="button" class="bg-yellow-400 text-black px-4 py-2 rounded-full font-semibold shadow-md">
         🛒 Blinkit
     </button>
 
-    <button type="button" class="bg-purple-600 text-white px-4 py-2 rounded-full font-semibold shadow-md"
-        onclick="orderItem('zepto')">
+    <button id="order-zepto-btn" type="button" class="bg-purple-600 text-white px-4 py-2 rounded-full font-semibold shadow-md">
         🟣 Zepto
     </button>
 
-    <button type="button" class="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md"
-        onclick="orderItem('amazon')">
+    <button id="order-amazon-btn" type="button" class="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md">
         🛍️ Amazon
     </button>
 
@@ -333,7 +330,7 @@ md:sticky md:top-24 self-start">
             placeholder="Add item..."
             class="flex-1 border p-2 rounded-lg text-sm">
 
-        <button type="button" onclick="addShoppingItem()"
+        <button id="add-shopping-btn" type="button"
             class="bg-green-600 text-white px-3 rounded-lg">
             +
         </button>

@@ -1,271 +1,309 @@
-// Single clean implementation with explicit global export
+const MODEL_URL = 'https://teachablemachine.withgoogle.com/models/4cByU1YCI/';
+const PREDICTION_INTERVAL = 300;
 
-// Hide modal overlay by default so it doesn't block clicks
-document.addEventListener('DOMContentLoaded', () => {
-    const overlay = document.getElementById('modal-overlay');
-    if (overlay) { overlay.style.display = 'none'; overlay.style.pointerEvents = 'none'; }
-});
+const state = {
+    model: null,
+    webcam: null,
+    isRunning: false,
+    lastItem: '',
+    lastPredictionTime: 0,
+    lowStockItems: [],
+};
 
-// Low-stock tracking
-let lowStockItems = [];
-let scannerListenersAttached = false;
+const UI = {};
 
-function updateList() {
-    const list = document.getElementById('lowStockList');
-    if (!list) return;
-    list.innerHTML = '';
-    if (lowStockItems.length === 0) {
-        list.innerHTML = '<li class="text-green-600 font-medium">✅ All items are full</li>';
+function $id(id) {
+    return document.getElementById(id);
+}
+
+function initPage() {
+    cacheElements();
+    attachButtonListeners();
+    attachOptionListeners();
+    hideBlockingOverlay();
+    loadShoppingList();
+    updateLowStockList();
+    console.log('ShelfSense UI initialized.');
+}
+
+function cacheElements() {
+    UI.startBtn = $id('start-btn');
+    UI.stopBtn = $id('stop-btn');
+    UI.webcamContainer = $id('webcam-container');
+    UI.scanAnimation = $id('scan-animation');
+    UI.scanPrompt = $id('scan-prompt');
+    UI.resultItem = $id('result-item');
+    UI.resultStatus = $id('result-status');
+    UI.lowStockList = $id('lowStockList');
+    UI.labelContainer = $id('label-container');
+    UI.shoppingInput = $id('shopping-input');
+    UI.shoppingList = $id('shopping-list');
+    UI.addShoppingBtn = $id('add-shopping-btn');
+    UI.orderBlinkitBtn = $id('order-blinkit-btn');
+    UI.orderZeptoBtn = $id('order-zepto-btn');
+    UI.orderAmazonBtn = $id('order-amazon-btn');
+    UI.selfAnalysisModal = $id('self-analysis-modal');
+    UI.resultsModal = $id('results-modal');
+    UI.infoModal = $id('info-modal');
+    UI.guideModal = $id('guide-modal');
+    UI.closeResultsBtn = $id('close-results');
+    UI.saveCombinedResultBtn = $id('save-combined-result');
+    UI.closeModalBtn = $id('close-modal');
+    UI.closeGuideBtn = $id('close-guide');
+}
+
+function attachButtonListeners() {
+    if (UI.startBtn) UI.startBtn.addEventListener('click', startScan);
+    if (UI.stopBtn) UI.stopBtn.addEventListener('click', stopScan);
+    if (UI.addShoppingBtn) UI.addShoppingBtn.addEventListener('click', addShoppingItem);
+    if (UI.orderBlinkitBtn) UI.orderBlinkitBtn.addEventListener('click', () => orderTo('blinkit'));
+    if (UI.orderZeptoBtn) UI.orderZeptoBtn.addEventListener('click', () => orderTo('zepto'));
+    if (UI.orderAmazonBtn) UI.orderAmazonBtn.addEventListener('click', () => orderTo('amazon'));
+
+    if (UI.closeResultsBtn) UI.closeResultsBtn.addEventListener('click', () => toggleModal(UI.resultsModal, false));
+    if (UI.saveCombinedResultBtn) UI.saveCombinedResultBtn.addEventListener('click', () => {
+        alert('Result saved for later review.');
+        toggleModal(UI.resultsModal, false);
+    });
+    if (UI.closeModalBtn) UI.closeModalBtn.addEventListener('click', () => toggleModal(UI.infoModal, false));
+    if (UI.closeGuideBtn) UI.closeGuideBtn.addEventListener('click', () => toggleModal(UI.guideModal, false));
+}
+
+function attachOptionListeners() {
+    document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.option-btn').forEach(item => item.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+    });
+}
+
+function hideBlockingOverlay() {
+    const overlay = $id('modal-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.style.pointerEvents = 'none';
+    }
+}
+
+async function startScan() {
+    if (state.isRunning) return;
+    state.isRunning = true;
+    console.log('Start scan pressed.');
+
+    try {
+        if (typeof tf === 'undefined' || typeof tmImage === 'undefined') {
+            throw new Error('TensorFlow or Teachable Machine library is not loaded.');
+        }
+
+        await tf.setBackend('webgl');
+        await tf.ready();
+
+        state.webcam = new tmImage.Webcam(224, 224, true);
+        await state.webcam.setup();
+        await state.webcam.play();
+
+        if (UI.webcamContainer) {
+            UI.webcamContainer.innerHTML = '';
+            UI.webcamContainer.appendChild(state.webcam.canvas);
+        }
+
+        UI.scanAnimation?.classList.remove('hidden');
+        UI.scanPrompt?.classList.remove('hidden');
+
+        try {
+            state.model = await tmImage.load(`${MODEL_URL}model.json`, `${MODEL_URL}metadata.json`);
+            console.log('Model loaded successfully.');
+            updateStatus('Model loaded. Scanning items...');
+        } catch (err) {
+            console.warn('Model load failed; continuing with camera preview only.', err);
+            updateStatus('Camera active. Model unavailable. Check network or browser privacy settings.');
+        }
+
+        requestAnimationFrame(scanLoop);
+    } catch (error) {
+        console.error('startScan error:', error);
+        alert('Unable to start scanner. Please allow camera access and refresh the page.');
+        state.isRunning = false;
+    }
+}
+
+function stopScan() {
+    if (state.webcam) {
+        state.webcam.stop();
+        state.webcam = null;
+    }
+
+    if (UI.webcamContainer) {
+        UI.webcamContainer.innerHTML = `<div class="text-center text-gray-400"><i class="fas fa-camera text-5xl mb-4"></i><p>Camera stopped</p><p class="text-xs">Click \"Start Scan\" to resume</p></div>`;
+    }
+
+    UI.scanAnimation?.classList.add('hidden');
+    UI.scanPrompt?.classList.add('hidden');
+    updateStatus('Scanner stopped.');
+    state.isRunning = false;
+}
+
+function scanLoop() {
+    if (!state.isRunning || !state.webcam) return;
+    state.webcam.update();
+    const now = Date.now();
+
+    if (now - state.lastPredictionTime > PREDICTION_INTERVAL && state.model) {
+        state.lastPredictionTime = now;
+        runPrediction();
+    }
+
+    requestAnimationFrame(scanLoop);
+}
+
+async function runPrediction() {
+    if (!state.model || !state.webcam) return;
+
+    try {
+        const predictions = await state.model.predict(state.webcam.canvas);
+        if (!predictions || predictions.length === 0) return;
+
+        const best = predictions.reduce((max, item) => (item.probability > max.probability ? item : max), predictions[0]);
+        if (!best || best.probability < 0.75) return;
+
+        const rawLabel = best.className.toLowerCase();
+        const confidence = Math.round(best.probability * 100);
+        const itemName = formatLabel(rawLabel);
+        const statusText = inferStatus(rawLabel);
+
+        if (itemName === state.lastItem && confidence < 90) return;
+        state.lastItem = itemName;
+
+        updateScanResult(itemName, statusText, confidence);
+    } catch (error) {
+        console.warn('Prediction failed:', error);
+    }
+}
+
+function formatLabel(label) {
+    return label.replace(/needs to be filled|half filled|fully filled/g, '')
+        .replace(/30|50|100/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function inferStatus(label) {
+    if (label.includes('fully') || label.includes('100')) return 'Full Stock';
+    if (label.includes('half') || label.includes('50')) return 'Medium Stock';
+    return 'Low Stock';
+}
+
+function updateScanResult(item, status, confidence) {
+    if (UI.resultItem) UI.resultItem.innerText = item;
+    if (UI.resultStatus) UI.resultStatus.innerHTML = `<span class="text-lg font-semibold">${status}</span><br><span class="text-xs text-gray-600">Confidence: ${confidence}%</span>`;
+
+    const box = $id('result-box');
+    if (box) {
+        box.classList.remove('bg-green-100', 'bg-yellow-100', 'bg-red-100');
+        if (status.includes('Full')) box.classList.add('bg-green-100');
+        else if (status.includes('Medium')) box.classList.add('bg-yellow-100');
+        else box.classList.add('bg-red-100');
+    }
+
+    document.querySelectorAll('.item-card').forEach(card => {
+        card.classList.remove('item-highlight');
+        if (card.dataset.item && card.dataset.item.toLowerCase() === item.toLowerCase()) {
+            card.classList.add('item-highlight');
+        }
+    });
+
+    setLowStock(item, status.includes('Low'));
+    if (UI.labelContainer) UI.labelContainer.innerHTML = `<b>${item}</b><br>${confidence}%`;
+}
+
+function setLowStock(itemName, needsRefill) {
+    if (needsRefill) {
+        if (!state.lowStockItems.includes(itemName)) {
+            state.lowStockItems.push(itemName);
+        }
+    } else {
+        state.lowStockItems = state.lowStockItems.filter(name => name !== itemName);
+    }
+    updateLowStockList();
+}
+
+function updateLowStockList() {
+    if (!UI.lowStockList) return;
+    UI.lowStockList.innerHTML = '';
+
+    if (state.lowStockItems.length === 0) {
+        UI.lowStockList.innerHTML = '<li class="text-green-600 font-medium">All items are full</li>';
         return;
     }
-    lowStockItems.forEach(item => {
+
+    state.lowStockItems.forEach(item => {
         const li = document.createElement('li');
         li.className = 'bg-red-100 text-red-700 px-3 py-2 rounded-lg';
         li.textContent = item;
-        list.appendChild(li);
+        UI.lowStockList.appendChild(li);
     });
 }
 
-function checkItem(itemName, level) {
-    if (level === 'Need to Fill') {
-        if (!lowStockItems.includes(itemName)) lowStockItems.push(itemName);
-    } else {
-        lowStockItems = lowStockItems.filter(i => i !== itemName);
-    }
-    updateList();
+function updateStatus(message) {
+    if (UI.resultStatus) UI.resultStatus.innerText = message;
 }
 
-// Main scanner setup
-function setupScanner() {
-    const URL = 'https://teachablemachine.withgoogle.com/models/4cByU1YCI/';
-    let model, webcam;
-    let isRunning = false;
-    let lastItem = '';
-    let lastPredictionTime = 0;
-    const PREDICTION_INTERVAL = 300;
-
-    function $id(id) { return document.getElementById(id); }
-
-    const startBtn = $id('start-btn');
-    const stopBtn = $id('stop-btn');
-    if (!scannerListenersAttached) {
-        if (startBtn) startBtn.addEventListener('click', init);
-        if (stopBtn) stopBtn.addEventListener('click', stopCam);
-        scannerListenersAttached = true;
-    }
-
-    async function init() {
-        if (isRunning) return;
-        isRunning = true;
-        console.log('setupScanner.init: called');
-        try {
-            if (typeof tf === 'undefined' || typeof tmImage === 'undefined') throw new Error('TF or TM lib missing');
-            console.log('setupScanner.init: setting backend webgl');
-            await tf.setBackend('webgl');
-            console.log('setupScanner.init: waiting for tf.ready()');
-            await tf.ready();
-
-            webcam = new tmImage.Webcam(224, 224, true);
-            console.log('setupScanner.init: creating webcam');
-            await webcam.setup();
-            console.log('setupScanner.init: webcam setup complete');
-            await webcam.play();
-            console.log('setupScanner.init: webcam play started');
-            const container = $id('webcam-container');
-            if (container) { container.innerHTML = ''; container.appendChild(webcam.canvas); }
-            $id('scan-animation')?.classList.remove('hidden');
-            $id('scan-prompt')?.classList.remove('hidden');
-
-            try {
-                console.log('setupScanner.init: loading model from', URL + 'model.json');
-                model = await tmImage.load(URL + 'model.json', URL + 'metadata.json');
-                console.log('setupScanner.init: model loaded');
-            } catch (modelError) {
-                console.warn('setupScanner.init: model load failed, continuing with camera preview', modelError);
-                const resultItem = $id('result-item'); if (resultItem) resultItem.innerText = 'Camera active (model unavailable)';
-                const resultStatus = $id('result-status'); if (resultStatus) resultStatus.innerText = 'Check network or browser privacy settings.';
-            }
-
-            requestAnimationFrame(loop);
-        } catch (e) {
-            console.error(e);
-            alert('❌ Camera or model error. Allow camera access or check console.');
-            isRunning = false;
-        }
-    }
-
-    async function loop() {
-        if (!webcam || !isRunning) return;
-        webcam.update();
-        const now = Date.now();
-        if (now - lastPredictionTime > PREDICTION_INTERVAL) {
-            lastPredictionTime = now;
-            predict();
-        }
-        requestAnimationFrame(loop);
-    }
-
-    async function predict() {
-        if (!model || !webcam) return;
-        let prediction;
-        try { prediction = await model.predict(webcam.canvas); }
-        catch (e) { console.log('Prediction error', e); return; }
-        let best = prediction.reduce((max, p) => p.probability > max.probability ? p : max, prediction[0]);
-        if (!best) return;
-        let confidence = Math.round(best.probability * 100);
-        if (confidence < 75) return;
-        let raw = best.className.toLowerCase();
-        let item = raw.replace(/needs to be filled|half filled|fully filled/g, '')
-                                    .replace(/30|50|100/g, '')
-                                    .replace(/\s+/g,' ').trim();
-        item = item.replace(/\b\w/g, l => l.toUpperCase());
-        let status = '';
-        if (raw.includes('fully') || raw.includes('100')) status = 'Full Stock ✅';
-        else if (raw.includes('half') || raw.includes('50')) status = 'Medium Stock ⚠️';
-        else status = 'Low Stock ❌';
-        if (item === lastItem && confidence < 90) return;
-        lastItem = item;
-
-        const resultItem = $id('result-item'); if (resultItem) resultItem.innerText = item;
-        const resultStatus = $id('result-status'); if (resultStatus) resultStatus.innerHTML = `\n      <span class="text-lg font-semibold">${status}</span><br>\n      <span class="text-xs text-gray-600">Confidence: ${confidence}%</span>\n    `;
-        const box = $id('result-box');
-        if (box) {
-            box.classList.remove('bg-green-100','bg-yellow-100','bg-red-100');
-            if (status.includes('Full')) box.classList.add('bg-green-100');
-            else if (status.includes('Medium')) box.classList.add('bg-yellow-100');
-            else box.classList.add('bg-red-100');
-        }
-        document.querySelectorAll('.item-card').forEach(card => {
-            card.classList.remove('item-highlight');
-            if (card.dataset.item && card.dataset.item.toLowerCase() === item.toLowerCase()) card.classList.add('item-highlight');
-        });
-        checkItem(item, status.includes('Low') ? 'Need to Fill' : 'Full');
-        const label = $id('label-container'); if (label) label.innerHTML = `<b>${item}</b><br>${confidence}%`;
-    }
-
-    function stopCam() {
-        if (webcam) { webcam.stop(); webcam = null; }
-        const container = $id('webcam-container');
-        if (container) {
-            container.innerHTML = `\n      <div class="text-center text-gray-400">\n        <i class="fas fa-camera text-4xl mb-2"></i>\n        <p class="font-medium">Camera stopped</p>\n        <p class="text-xs">Click \"Start Scan\" to resume</p>\n      </div>\n    `;
-        }
-        $id('scan-animation')?.classList.add('hidden');
-        $id('scan-prompt')?.classList.add('hidden');
-        isRunning = false;
-    }
-}
-
-// Expose for global calls and guard initialization
-window.setupScanner = setupScanner;
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        try { setupScanner(); } catch (e) { console.warn('setupScanner call failed:', e); }
-        if (typeof loadShoppingList === 'function') loadShoppingList();
-    });
-} else {
-    try { setupScanner(); } catch (e) { console.warn('setupScanner call failed:', e); }
-    if (typeof loadShoppingList === 'function') loadShoppingList();
-}
-
-// Shopping list functions
 function addShoppingItem() {
-    const input = document.getElementById('shopping-input'); if (!input) return;
-    const item = input.value.trim(); if (!item) return;
-    let list = JSON.parse(localStorage.getItem('shoppingList')) || [];
-    list.push(item);
+    const value = UI.shoppingInput?.value.trim();
+    if (!value) return;
+
+    const list = JSON.parse(localStorage.getItem('shoppingList') || '[]');
+    list.push(value);
     localStorage.setItem('shoppingList', JSON.stringify(list));
-    input.value = '';
+    UI.shoppingInput.value = '';
     loadShoppingList();
 }
 
 function loadShoppingList() {
-    const listContainer = document.getElementById('shopping-list'); if (!listContainer) return;
-    listContainer.innerHTML = '';
-    let list = JSON.parse(localStorage.getItem('shoppingList')) || [];
+    if (!UI.shoppingList) return;
+    const list = JSON.parse(localStorage.getItem('shoppingList') || '[]');
+    UI.shoppingList.innerHTML = '';
+
     list.forEach((item, index) => {
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center bg-gray-100 px-3 py-2 rounded-lg';
-        li.innerHTML = `\n      <span>${item}</span>\n      <button onclick="removeItem(${index})" class="text-red-500 text-xs">\n        ❌\n      </button>\n    `;
-        listContainer.appendChild(li);
+        li.innerHTML = `<span>${item}</span><button type="button" class="text-red-500 text-xs" data-index="${index}">?</button>`;
+        UI.shoppingList.appendChild(li);
+    });
+
+    UI.shoppingList.querySelectorAll('button[data-index]').forEach(button => {
+        button.addEventListener('click', () => removeShoppingItem(Number(button.dataset.index)));
     });
 }
 
-function removeItem(index) {
-    let list = JSON.parse(localStorage.getItem('shoppingList')) || [];
-    list.splice(index,1);
+function removeShoppingItem(index) {
+    const list = JSON.parse(localStorage.getItem('shoppingList') || '[]');
+    list.splice(index, 1);
     localStorage.setItem('shoppingList', JSON.stringify(list));
     loadShoppingList();
 }
 
-function orderItem(platform) {
-    const itemEl = document.getElementById('result-item');
-    const item = itemEl ? itemEl.innerText : '';
-    if (!item || item === 'Waiting for scan...') { alert('⚠️ Scan an item first!'); return; }
+function orderTo(platform) {
+    const selectedItem = UI.resultItem?.innerText || '';
+    if (!selectedItem || selectedItem === 'Waiting for scan...') {
+        alert('Please scan an item first.');
+        return;
+    }
+
     let url = '';
-    if (platform === 'blinkit') url = `https://blinkit.com/s/?q=${encodeURIComponent(item)}`;
-    else if (platform === 'zepto') url = `https://www.zeptonow.com/search?query=${encodeURIComponent(item)}`;
-    else if (platform === 'amazon') url = `https://www.amazon.in/s?k=${encodeURIComponent(item)}`;
+    if (platform === 'blinkit') url = `https://blinkit.com/s/?q=${encodeURIComponent(selectedItem)}`;
+    else if (platform === 'zepto') url = `https://www.zeptonow.com/search?query=${encodeURIComponent(selectedItem)}`;
+    else if (platform === 'amazon') url = `https://www.amazon.in/s?k=${encodeURIComponent(selectedItem)}`;
+
     if (url) window.open(url, '_blank');
 }
 
-function askAI() {
-    const inputEl = document.getElementById('ai-input'); const responseBox = document.getElementById('ai-response');
-    if (!inputEl || !responseBox) return; const input = inputEl.value.toLowerCase().trim(); if (!input) return;
-    if (input.includes('wheat')) responseBox.innerText = 'Store wheat flour in an airtight container in a cool, dry place. You can refrigerate it to increase shelf life.';
-    else if (input.includes('rice')) responseBox.innerText = 'Store rice in an airtight container away from moisture. Keep it in a cool place to avoid insects.';
-    else if (input.includes('dal') || input.includes('moong')) responseBox.innerText = 'Keep dal in sealed containers. Avoid moisture and store in a dry place.';
-    else if (input.includes('smell') || input.includes('spoiled')) responseBox.innerText = 'If food smells bad or looks discolored, it is better to discard it to avoid health risks.';
-    else responseBox.innerText = 'Store food in airtight containers, keep away from moisture, and check regularly for freshness.';
+function toggleModal(modalElement, show) {
+    if (!modalElement) return;
+    modalElement.classList.toggle('show', show);
 }
-// Load shopping list on page load (single implementation above)
-document.addEventListener("DOMContentLoaded", () => {
-    if (typeof loadShoppingList === 'function') loadShoppingList();
-});
 
-// --- Quick diagnostics and fallback helpers ---
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        console.group('App diagnostics');
-        console.log('tf:', typeof tf);
-        console.log('tmImage:', typeof tmImage);
-        console.log('setupScanner:', typeof window.setupScanner);
-        const startBtn = document.getElementById('start-btn');
-        console.log('start-btn exists:', !!startBtn);
-        if (startBtn) console.log(startBtn.outerHTML);
-
-        // attempt to find common overlay elements and hide them to avoid blocking clicks
-        const overlayCandidates = [
-            document.getElementById('modal-overlay'),
-            document.querySelector('.overlay'),
-            document.getElementById('overlay'),
-            document.querySelector('[role="dialog"]')
-        ].filter(Boolean);
-        if (overlayCandidates.length) {
-            overlayCandidates.forEach(o => {
-                if (o) {
-                    console.log('found overlay:', o.id || o.className || o.tagName, getComputedStyle(o).display, getComputedStyle(o).zIndex, 'pointerEvents=', getComputedStyle(o).pointerEvents);
-                    o.style.display = 'none';
-                    o.style.pointerEvents = 'none';
-                    console.log('overlay hidden');
-                }
-            });
-        } else {
-            console.log('no overlay-like element found');
-        }
-
-        // fallback: if Start button exists and doesn't have a handler, attach one that calls setupScanner
-        if (startBtn && !startBtn.dataset.fallbackAttached) {
-            startBtn.addEventListener('click', () => {
-                console.log('Fallback start button click — invoking window.setupScanner if available');
-                try { if (typeof window.setupScanner === 'function') window.setupScanner(); }
-                catch (err) { console.error('fallback start error', err); }
-            });
-            startBtn.dataset.fallbackAttached = '1';
-        }
-
-        console.groupEnd();
-    } catch (e) {
-        console.error('Diagnostics failed', e);
-    }
-});
+window.setupScanner = startScan;
+window.addEventListener('DOMContentLoaded', initPage);
