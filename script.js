@@ -1,4 +1,18 @@
-// Single clean script for scanner + shopping list
+// ShelfSense scanner + shopping list (clean)
+
+// Quick fix: ensure modal overlay isn't blocking clicks by default
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) {
+        try {
+            const style = getComputedStyle(overlay);
+            if (style && style.display !== 'none') console.warn('modal-overlay was visible; hiding to restore interactivity.');
+        } catch (e) {}
+        overlay.style.display = 'none';
+        overlay.style.pointerEvents = 'none';
+    }
+});
+
 // Low-stock tracking
 let lowStockItems = [];
 
