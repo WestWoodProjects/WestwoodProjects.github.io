@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Low-stock tracking
 let lowStockItems = [];
+let scannerListenersAttached = false;
 
 function updateList() {
     const list = document.getElementById('lowStockList');
@@ -47,24 +48,44 @@ function setupScanner() {
 
     const startBtn = $id('start-btn');
     const stopBtn = $id('stop-btn');
-    if (startBtn) startBtn.addEventListener('click', init);
-    if (stopBtn) stopBtn.addEventListener('click', stopCam);
+    if (!scannerListenersAttached) {
+        if (startBtn) startBtn.addEventListener('click', init);
+        if (stopBtn) stopBtn.addEventListener('click', stopCam);
+        scannerListenersAttached = true;
+    }
 
     async function init() {
         if (isRunning) return;
         isRunning = true;
+        console.log('setupScanner.init: called');
         try {
             if (typeof tf === 'undefined' || typeof tmImage === 'undefined') throw new Error('TF or TM lib missing');
+            console.log('setupScanner.init: setting backend webgl');
             await tf.setBackend('webgl');
+            console.log('setupScanner.init: waiting for tf.ready()');
             await tf.ready();
-            model = await tmImage.load(URL + 'model.json', URL + 'metadata.json');
+
             webcam = new tmImage.Webcam(224, 224, true);
+            console.log('setupScanner.init: creating webcam');
             await webcam.setup();
+            console.log('setupScanner.init: webcam setup complete');
             await webcam.play();
+            console.log('setupScanner.init: webcam play started');
             const container = $id('webcam-container');
             if (container) { container.innerHTML = ''; container.appendChild(webcam.canvas); }
             $id('scan-animation')?.classList.remove('hidden');
             $id('scan-prompt')?.classList.remove('hidden');
+
+            try {
+                console.log('setupScanner.init: loading model from', URL + 'model.json');
+                model = await tmImage.load(URL + 'model.json', URL + 'metadata.json');
+                console.log('setupScanner.init: model loaded');
+            } catch (modelError) {
+                console.warn('setupScanner.init: model load failed, continuing with camera preview', modelError);
+                const resultItem = $id('result-item'); if (resultItem) resultItem.innerText = 'Camera active (model unavailable)';
+                const resultStatus = $id('result-status'); if (resultStatus) resultStatus.innerText = 'Check network or browser privacy settings.';
+            }
+
             requestAnimationFrame(loop);
         } catch (e) {
             console.error(e);

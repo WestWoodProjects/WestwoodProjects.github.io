@@ -511,3 +511,6 @@ button,
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+/* DEBUG: force-hide modal overlay to prevent click-blocking during troubleshooting */
+#modal-overlay, .overlay { display: none !important; pointer-events: none !important; }
