@@ -513,4 +513,17 @@ button,
 }
 
 /* DEBUG: force-hide modal overlay to prevent click-blocking during troubleshooting */
-#modal-overlay, .overlay { display: none !important; pointer-events: none !important; }
+#modal-overlay,
+.overlay,
+.self-analysis-modal:not(.show),
+.results-modal:not(.show),
+#info-modal.hidden,
+#guide-modal.hidden {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+button {
+    position: relative;
+    z-index: 1001;
+}
